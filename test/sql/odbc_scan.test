@@ -1,0 +1,18 @@
+# name: test/sql/odbc_scan.test
+# description: test odbc_scan extension
+# group: [odbc_scan]
+
+# Before we load the extension, this will fail
+statement error
+SELECT odbc_scan('Sam');
+----
+Catalog Error: Scalar Function with name odbc_scan does not exist!
+
+# Require statement will ensure this test is run with this extension loaded
+require odbc_scan
+
+# Confirm the extension works
+query I
+SELECT odbc_scan('Sam');
+----
+Odbc_scan Sam 🐥
