@@ -1,43 +1,44 @@
-# DuckDB odbc_scanner
+# ODBC Scanner DuckDB Extension
 
-The `odbc_scanner` extension allows DuckDB to directly read data from databases supporting the ODBC interface
+A DuckDB extension to read data directly from databases supporting the ODBC interface
 
-## Building
-To build the extension:
+### odbc_scan
+
+```duckdb
+D select * from odbc_scan('DSN...', 'db2inst1', 'people');
+┌──────────────┐─────────┐
+│    name      │   age   │
+│   varchar    │   int   │
+├──────────────┤─────────┤
+│ Lebron James │   36    │
+│ Spiderman    │   25    │
+│ Wonder Woman │   22    │
+│ David Bowie  │   69    │
+└──────────────┘─────────┘
+```
+
+## Development
+
+Use the official DuckDB `cmake` builder
+
 ```sh
 make
 ```
-The main binaries that will be built are:
+
+Or... use the experimental `nix` flake and `zig` builder within this repo
+
 ```sh
-./build/release/duckdb
-./build/release/test/unittest
-./build/release/extension/odbc_scanner/odbc_scanner.duckdb_extension
-```
-- `duckdb` is the binary for the duckdb shell with the extension code automatically loaded.
-- `unittest` is the test runner of duckdb. Again, the extension is already linked into the binary.
-- `odbc_scanner.duckdb_extension` is the loadable binary as it would be distributed.
-
-## Running the extension
-To run the extension code, simply start the shell with `./build/release/duckdb`.
-
-Now we can use the features from the extension directly in DuckDB. The template contains a single scalar function `odbc_scan()` that takes a string arguments and returns a string:
-```
-D select odbc_scan('Jane') as result;
-┌───────────────────┐
-│      result       │
-│      varchar      │
-├───────────────────┤
-│ Odbc_scan Jane 🐥 │
-└───────────────────┘
+nix run .#build-fast
 ```
 
-## Running the tests
-Different tests can be created for DuckDB extensions. The primary way of testing DuckDB extensions should be the SQL tests in `./test/sql`. These SQL tests can be run using:
+## Test
+
 ```sh
 make test
 ```
 
 ### Installing the deployed binaries
+
 To install your extension binaries from S3, you will need to do two things. Firstly, DuckDB should be launched with the
 `allow_unsigned_extensions` option set to true. How to set this will depend on the client you're using. Some examples:
 
@@ -66,6 +67,10 @@ DuckDB. To specify a specific version, you can pass the version instead.
 
 After running these steps, you can install and load your extension using the regular INSTALL/LOAD commands in DuckDB:
 ```sql
-INSTALL odbc_scanner
-LOAD odbc_scanner
+INSTALL 'build/release/extension/odbc_scanner/odbc_scanner.duckdb_extension';
+LOAD 'build/release/extension/odbc_scanner/odbc_scanner.duckdb_extension';
 ```
+
+## License
+
+`odbc-scanner-duckdb-extension` is released under the [MIT license](./LICENSE)

@@ -1,7 +1,7 @@
 var duckdb = require('../../duckdb/tools/nodejs');
 var assert = require('assert');
 
-describe(`odbc_scan extension`, () => {
+describe(`read_record`, () => {
     let db;
     let conn;
     before((done) => {
@@ -11,9 +11,9 @@ describe(`odbc_scan extension`, () => {
     });
 
     it('function should return expected constant', function (done) {
-        db.all("SELECT odbc_scan('Sam') as value;", function (err, res) {
+        db.all("SELECT read_record('Sam') as value;", function (err, res) {
             if (err) throw err;
-            assert.deepEqual(res, [{value: "Odbc_scan Sam 🐥"}]);
+            assert.deepEqual(res, [{value: "TODO: read_record Sam 🐥"}]);
             done();
         });
     });
