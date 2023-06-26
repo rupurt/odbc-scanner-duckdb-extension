@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  db2:
+    image: icr.io/db2_community/db2:11.5.8.0
+    platform: linux/amd64
+    privileged: true
+    ports:
+      - "50000:50000"
+    volumes:
+      - db2_data:/database
+    environment:
+      - LICENSE=${DB2_LICENSE:-accept}
+      - DB2INST1_PASSWORD=${DB2_DBINST1_PASSWORD:-password}
+      - DBNAME=${DB2_DBNAME:-odbctest}
+      - DB2INSTANCE=${DB2_DB2INSTANCE:-db2inst1}
+      - BLU=${DB2_BLU:-false}
+      - ENABLE_ORACLE_COMPATIBILITY=${DB2_ENABLE_ORACLE_COMPATIBILITY:-false}
+      - UPDATEAVAIL=${DB2_UPDATEAVAIL:-NO}
+      - TO_CREATE_SAMPLEDB=${DB2_TO_CREATE_SAMPLEDB:-false}
+      - SAMPLEDB=${DB2_SAMPLEDB:-false}
+      - IS_OSXFS=${DB2_IS_OSXFS:-true}
+      - REPODB=${DB2_REPODB:-false}
+      - HADR_ENABLED=${DB2_HADR_ENABLED:-false}
+      - PERSISTENT_HOME=${DB2_PERSISTENT_HOME:-true}
+      - ETCD_ENDPOINT=${DB2_ETCD_ENDPOINT:-}
+      - ETCD_USERNAME=${DB2_ETCD_USERNAME:-}
+      - ETCD_PASSWORD=${DB2_ETCD_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "/opt/ibm/db2/V11.5/bin/db2", "connect to odbctest"]
+      interval: 10s
+      timeout: 10s
+      retries: 1000
+      start_period: 60s
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    privileged: true
+    ports:
+      - "1433:1433"
+    # volumes:
+    #   - mssql_data:/var/opt/mssql/data
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=password
+
+  oracle:
+    image: container-registry.oracle.com/database/free:23.2.0.0
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    environment:
+      - ORACLE_PWD=password
+
+  postgres:
+    image: postgres:15.3-alpine3.18
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+
+  mariadb:
+    image: mariadb:11.0.2
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    environment:
+      - MARIADB_USER=mariadb
+      - MARIADB_PASSWORD=password
+      - MARIADB_ROOT_PASSWORD=password
+
+volumes:
+  db2_data: {}
+  mssql_data: {}
+  oracle_data: {}
+  postgres_data: {}
+  mariadb_data: {}
