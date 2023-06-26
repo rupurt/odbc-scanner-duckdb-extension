@@ -15,6 +15,7 @@
     outputs = flake-utils.lib.eachSystem systems (system: let
       pkgs = import nixpkgs {
         inherit system;
+        # config = { allowUnfree = true; };
       };
     in rec {
       # packages exported by the flake
@@ -39,6 +40,12 @@
             echo "    - -I$PWD/duckdb/third_party/imdb/include" >> .clangd
           '');
         };
+        load-db2-schema = {
+          type = "app";
+          program = toString (pkgs.writeScript "load-db2-schema" ''
+            echo "TODO: load db2 schema"
+          '');
+        };
         test = {
           type = "app";
           program = toString (pkgs.writeScript "test" ''
@@ -50,7 +57,9 @@
                 ninja
                 llvmPackages_16.clang
                 openssl
+                # unixODBCDrivers.msodbcsql17
                 unixODBCDrivers.psql
+                # unixODBCDrivers.mariadb
               ]
             )}:$PATH"
             export CC=${pkgs.llvmPackages_16.clang}/bin/clang
@@ -72,7 +81,9 @@
                 ninja
                 llvmPackages_16.clang
                 openssl
+                # unixODBCDrivers.msodbcsql17
                 unixODBCDrivers.psql
+                # unixODBCDrivers.mariadb
               ]
             )}:$PATH"
             export CC=${pkgs.llvmPackages_16.clang}/bin/clang
@@ -99,7 +110,9 @@
           pkgs.llvmPackages_16.clang
           pkgs.openssl
           pkgs.unixODBC
+          # pkgs.unixODBCDrivers.msodbcsql17
           pkgs.unixODBCDrivers.psql
+          # pkgs.unixODBCDrivers.mariadb
           pkgs.postgresql_15
         ];
       };

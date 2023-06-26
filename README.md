@@ -5,39 +5,78 @@ A DuckDB extension to read data directly from databases supporting the ODBC inte
 ### odbc_scan
 
 ```duckdb
-D select * from odbc_scan('DSN...', 'db2inst1', 'people');
-┌──────────────┐─────────┐
-│    name      │   age   │
-│   varchar    │   int   │
-├──────────────┤─────────┤
-│ Lebron James │   36    │
-│ Spiderman    │   25    │
-│ Wonder Woman │   22    │
-│ David Bowie  │   69    │
-└──────────────┘─────────┘
+D select * from odbc_scan(
+    'Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.so;Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
+    'DB2INST1',
+    'PEOPLE'
+);
+┌──────────────┬───────┬───────────────┐
+│     NAME     │  AGE  │    SALARY     │
+│   varchar    │ int32 │ decimal(20,2) │
+├──────────────┼───────┼───────────────┤
+│ Lebron James │    37 │        100.10 │
+│ Spiderman    │    25 │        200.20 │
+│ Wonder Woman │    22 │        300.30 │
+│ David Bowie  │    69 │        400.40 │
+└──────────────┴───────┴───────────────┘
 ```
+
+## Known Supported Databases
+
+This extension is tested and known to work with the ODBC drivers of the following databases.
+
+| Database   | Tests                                                    | x86_64 | aarch64 |
+| ---------- | :------------------------------------------------------: | :----: | :-----: |
+| IBM Db2    | [odbc_scan_db2](./test/sql/odbc_scan_db2.test)           | `[x]`  | `[ ]`   |
+| MSSQL      | [odbc_scan_msql](./test/sql/odbc_scan_mssql.test)        | `[ ]`  | `[ ]`   |
+| Oracle     | [odbc_scan_oracle](./test/sql/odbc_scan_oracle.test)     | `[ ]`  | `[ ]`   |
+| Postgres   | [odbc_scan_postgres](./test/sql/odbc_scan_postgres.test) | `[x]`  | `[x]`   |
+| MariaDB    | [odbc_scan_mariadb](./test/sql/odbc_scan_mariadb.test)   | `[ ]`  | `[ ]`   |
+
+## Planned Supported Databases
+
+| Database   | Tests                                                       | x86_64 | aarch64 |
+| ---------- | :---------------------------------------------------------: | :----: | :-----: |
+| Snowflake  | [odbc_scan_snowflake](./test/sql/odbc_scan_snowflake.test)  | `[ ]`  | `[ ]`   |
+
+If you have tested the extension against other databases let us know by opening an [issue](https://github.com/rupurt/odbc-scanner-duckdb-extension/issues/new)
+or creating a pull request with a set of tests.
+
+## Supported DSN Formats
+
+### Connection Strings
+
+- IBM Db2  - `Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.so;Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000`
+- Postgres - `Driver=/opt/homebrew/Cellar/psqlodbc/15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432`
 
 ## Development
 
-Use the official DuckDB `cmake` builder
+This repository manages development dependencies such drivers and shared libraries with [nix](https://nixos.org). It assumes you
+have it [installed](https://github.com/DeterminateSystems/nix-installer).
 
-```sh
-make
+All `development` and `test` tasks should be run within a nix shell
+
+```shell
+nix develop -c $SHELL
 ```
 
-Or... use the experimental `nix` flake and `zig` builder within this repo
+Use the official DuckDB `cmake` builder with `nix` to ensure `unixodbc` is linked correctly
 
-```sh
-nix run .#build-fast
+```shell
+nix run .#build
+./build/release/duckdb
 ```
 
 ## Test
 
-```sh
-make test
+Run the official DuckDB `cmake` builder with `nix` to ensure `unixodbc` is linked correctly
+
+```shell
+docker compose up
+nix run .#test
 ```
 
-### Installing the deployed binaries
+## Installing the deployed binaries
 
 To install your extension binaries from S3, you will need to do two things. Firstly, DuckDB should be launched with the
 `allow_unsigned_extensions` option set to true. How to set this will depend on the client you're using. Some examples:
