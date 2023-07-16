@@ -32,6 +32,7 @@
       # packages exported by the flake
       packages = {
         db2-odbc-driver = pkgs.db2-odbc-driver {};
+        postgres-odbc-driver = pkgs.postgres-odbc-driver {};
       };
 
       # nix run
@@ -53,6 +54,7 @@
           type = "app";
           program = toString (pkgs.writeScript "generate-odbcinst-ini" ''
             DB2_DRIVER_PATH=${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"} \
+            POSTGRES_DRIVER_PATH=${packages.postgres-odbc-driver}/lib/psqlodbca.so \
               envsubst < ./templates/.odbcinst.ini.template > .odbcinst.ini
           '');
         };
@@ -60,6 +62,7 @@
           type = "app";
           program = toString (pkgs.writeScript "ls-odbc-driver-paths" ''
             echo "db2 ${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"}"
+            echo "postgres ${packages.postgres-odbc-driver}/lib/psqlodbca.so"
           '');
         };
         load-db2-schema = {
@@ -79,6 +82,7 @@
                 ninja
                 openssl
                 packages.db2-odbc-driver
+                packages.postgres-odbc-driver
               ]
             )}:$PATH"
             export CC=${stdenv.cc}/bin/clang
@@ -103,6 +107,7 @@
                 ninja
                 openssl
                 packages.db2-odbc-driver
+                packages.postgres-odbc-driver
               ]
             )}:$PATH"
             export CC=${stdenv.cc}/bin/clang
@@ -136,6 +141,7 @@
           # psql cli
           pkgs.postgresql_15
           packages.db2-odbc-driver
+          packages.postgres-odbc-driver
         ];
       };
     });
