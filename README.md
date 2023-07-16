@@ -49,6 +49,11 @@ or creating a pull request with a set of tests.
 
 For a full list of supported values read the [connection string](./docs/ODBC_CONNECTION_STRING_AND_DSN_FORMATS.md) documentation.
 
+## ODBC Drivers
+
+Drivers can be downloaded from most vendors. This package manages ODBC drivers through the [odbc-drivers-nix](https://github.com/rupurt/odbc-drivers-nix)
+flake. If you'd like to have nix download and manage drivers and their dependencies follow the instructions in the [README](https://github.com/rupurt/odbc-drivers-nix#add-the-odbc-drivers-nix-overlay-to-your-own-flake).
+
 ## Development
 
 This repository manages development dependencies such drivers and shared libraries with [nix](https://nixos.org). It assumes you
