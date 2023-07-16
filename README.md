@@ -4,9 +4,12 @@ A DuckDB extension to read data directly from databases supporting the ODBC inte
 
 ### odbc_scan
 
+```shell
+ODBCSYSINI=${PWD} ODBCINSTINI=.odbcinst.ini ODBCINI=.odbc.ini ./build/release/duckdb
+```
 ```duckdb
 D select * from odbc_scan(
-    'Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.so;Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
+    'Driver={db2 odbctest};Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
     'DB2INST1',
     'PEOPLE'
 );
@@ -42,12 +45,9 @@ This extension is tested and known to work with the ODBC drivers of the followin
 If you have tested the extension against other databases let us know by opening an [issue](https://github.com/rupurt/odbc-scanner-duckdb-extension/issues/new)
 or creating a pull request with a set of tests.
 
-## Supported DSN Formats
+## Connection String and DSN Formats
 
-### Connection Strings
-
-- IBM Db2  - `Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.so;Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000`
-- Postgres - `Driver=/opt/homebrew/Cellar/psqlodbc/15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432`
+For a full list of supported values read the [connection string](./docs/ODBC_CONNECTION_STRING_AND_DSN_FORMATS.md) documentation.
 
 ## Development
 
@@ -73,6 +73,13 @@ to the correct version of `unixodbc`.
 ```shell
 nix run .#build
 ./build/release/duckdb
+```
+
+To use ODBC DSN's with driver paths managed by the `odbc-drivers-nix` flake run the generate nix apps.
+
+```shell
+nix run .#generate-odbc-ini
+nix run .#generate-odbcinst-ini
 ```
 
 ## Test

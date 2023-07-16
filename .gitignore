@@ -7,4 +7,5 @@ testext
 test/python/__pycache__/
 .Rhistory
 .clangd
-.data
+.odbc.ini
+.odbcinst.ini
