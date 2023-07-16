@@ -24,23 +24,21 @@ D select * from odbc_scan(
 └──────────────┴───────┴───────────────┘
 ```
 
-## Known Supported Databases
+## Supported Databases
 
 This extension is tested and known to work with the ODBC drivers of the following databases.
 
-| Database   | Tests                                                    | x86_64 | aarch64 |
-| ---------- | :------------------------------------------------------: | :----: | :-----: |
-| IBM Db2    | [odbc_scan_db2](./test/sql/odbc_scan_db2.test)           | `[x]`  | `[ ]`   |
-| MSSQL      | [odbc_scan_msql](./test/sql/odbc_scan_mssql.test)        | `[ ]`  | `[ ]`   |
-| Oracle     | [odbc_scan_oracle](./test/sql/odbc_scan_oracle.test)     | `[ ]`  | `[ ]`   |
-| Postgres   | [odbc_scan_postgres](./test/sql/odbc_scan_postgres.test) | `[x]`  | `[x]`   |
-| MariaDB    | [odbc_scan_mariadb](./test/sql/odbc_scan_mariadb.test)   | `[ ]`  | `[ ]`   |
-
-## Planned Supported Databases
-
-| Database   | Tests                                                       | x86_64 | aarch64 |
-| ---------- | :---------------------------------------------------------: | :----: | :-----: |
-| Snowflake  | [odbc_scan_snowflake](./test/sql/odbc_scan_snowflake.test)  | `[ ]`  | `[ ]`   |
+| Database   | Tests                                                      | Linux x86_64 | Linux arm64 | OS X x86_64 | OS X aarch64 |
+| ---------- | :--------------------------------------------------------: | :----------: | :---------: | :---------: | :----------: |
+| IBM Db2    | [odbc_scan_db2](./test/sql/odbc_scan_db2.test)             | `[x]`        | `[ ]`       | `[x]`       | `[ ]`        |
+| MSSQL      | [odbc_scan_msql](./test/sql/odbc_scan_mssql.test)          | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| Oracle     | [odbc_scan_oracle](./test/sql/odbc_scan_oracle.test)       | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| Postgres   | [odbc_scan_postgres](./test/sql/odbc_scan_postgres.test)   | `[x]`        | `[x]`       | `[x]`       | `[x]`        |
+| MySQL      | [odbc_scan_mysql](./test/sql/odbc_scan_mysql.test)         | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| MariaDB    | [odbc_scan_mariadb](./test/sql/odbc_scan_mariadb.test)     | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| Snowflake  | [odbc_scan_snowflake](./test/sql/odbc_scan_snowflake.test) | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| BigQuery   | [odbc_scan_big_query](./test/sql/odbc_scan_big_query.test) | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| MongoDB    | [odbc_scan_mongo_db](./test/sql/odbc_scan_mongo_db.test)   | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
 
 If you have tested the extension against other databases let us know by opening an [issue](https://github.com/rupurt/odbc-scanner-duckdb-extension/issues/new)
 or creating a pull request with a set of tests.

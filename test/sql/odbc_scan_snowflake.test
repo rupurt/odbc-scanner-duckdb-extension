@@ -1,0 +1,29 @@
+# # name: test/sql/odbc_scan_snowflake.test
+# # description: test odbc_scanner extension
+# # group: [odbc_scan]
+#
+# # Before we load the extension, this will fail
+# statement error
+# SELECT * FROM odbc_scan(
+#   'Driver=/opt/homebrew/Cellar/psqlodbc/15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_scanner_duckdb_extension_test;Uid=snowflake;Pwd=password;Port=5432',
+#   'db2inst1',
+#   'people'
+# );
+# ----
+# Catalog Error: Table Function with name odbc_scan does not exist!
+#
+# # Require statement will ensure this test is run with this extension loaded
+# require odbc_scanner
+#
+# # Confirm the extension works
+# query I
+# SELECT * FROM odbc_scan(
+#   'Driver=/opt/homebrew/Cellar/psqlodbc/15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_scanner_duckdb_extension_test;Uid=snowflake;Pwd=password;Port=5432',
+#   'db2inst1',
+#   'people'
+# );
+# ----
+# Lebron James    37      100.10
+# Spiderman       25      200.20
+# Wonder Woman    21      300.30
+# David Bowie     68      400.40
