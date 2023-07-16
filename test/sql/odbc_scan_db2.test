@@ -3,27 +3,15 @@
 # group: [odbc_scan]
 
 # Before we load the extension, this will fail
-# statement error
-# SELECT * FROM odbc_scan(
-#   'Driver=/nix/store/03d2ih9gj622raq02gqzm5971dgvxhwh-db2-driver-11.5.8/lib/libdb2.dylib;Hostname=localhost;Database=kohls;Uid=db2inst1;Pwd=password;Port=50000',
-#   'db2inst1',
-#   'people'
-# );
-# ----
-# statement error
-# SELECT * FROM odbc_scan(
-#   'Driver=/opt/homebrew/Cellar/psqlodbc/15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_scanner_duckdb_extension_test;Uid=postgres;Pwd=password;Port=5432',
-#   'db2inst1',
-#   'people'
-# );
 # ----
 # Catalog Error: Table Function with name odbc_scan does not exist!
 statement error
 SELECT * FROM odbc_scan(
-  'Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.so;Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
+  'DSN={db2 odbctest};Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
   'DB2INST1',
   'PEOPLE'
-);
+)
+ORDER BY salary ASC;
 ----
 Catalog Error: Table Function with name odbc_scan does not exist!
 
@@ -31,22 +19,10 @@ Catalog Error: Table Function with name odbc_scan does not exist!
 require odbc_scanner
 
 # Confirm the extension works
-# query I
-# SELECT * FROM odbc_scan(
-#   'Driver=/nix/store/03d2ih9gj622raq02gqzm5971dgvxhwh-db2-driver-11.5.8/lib/libdb2.dylib;Hostname=localhost;Database=kohls;Uid=db2inst1;Pwd=password;Port=50000',
-#   'db2inst1',
-#   'people'
-# );
-# query I
-# SELECT * FROM odbc_scan(
-#   'Driver=/opt/homebrew/Cellar/psqlodbc/15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_scanner_duckdb_extension_test;Uid=postgres;Pwd=password;Port=5432',
-#   'db2inst1',
-#   'people'
-# );
 # ----
 query III
 SELECT * FROM odbc_scan(
-  'Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.so;Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
+  'DSN={db2 odbctest};Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000',
   'DB2INST1',
   'PEOPLE'
 )

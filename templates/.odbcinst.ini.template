@@ -1,0 +1,2 @@
+[db2]
+Driver = ${DB2_DRIVER_PATH}

@@ -294,15 +294,15 @@ public:
                       " native=" + std::to_string(diagnostics->native));
     }
   }
-  void Dial(string dsn) {
-    auto conn_str_in_len = (SQLSMALLINT)dsn.length();
+  void Dial(string connection_string) {
+    auto conn_str_in_len = (SQLSMALLINT)connection_string.length();
     SQLSMALLINT conn_str_out_len = 0;
     SQLCHAR conn_str_out[MAX_CONN_STR_OUT + 1] = {0};
 
     auto sql_return = SQLDriverConnect(
-        handle_conn, NULL, (SQLCHAR *)dsn.c_str(), conn_str_in_len,
-        conn_str_out, (SQLSMALLINT)MAX_CONN_STR_OUT, &conn_str_out_len,
-        SQL_DRIVER_NOPROMPT);
+        handle_conn, NULL, (SQLCHAR *)connection_string.c_str(),
+        conn_str_in_len, conn_str_out, (SQLSMALLINT)MAX_CONN_STR_OUT,
+        &conn_str_out_len, SQL_DRIVER_NOPROMPT);
     if (sql_return == SQL_SUCCESS || sql_return == SQL_SUCCESS_WITH_INFO) {
       dialed = true;
     } else if (sql_return == SQL_NO_DATA_FOUND) {

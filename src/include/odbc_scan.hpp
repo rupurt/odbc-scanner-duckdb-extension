@@ -15,7 +15,7 @@
 
 namespace duckdb {
 struct OdbcScanBindData : public FunctionData {
-  string dsn;
+  string connection_string;
   string schema_name;
   string table_name;
   shared_ptr<OdbcEnvironment> environment;
@@ -289,7 +289,7 @@ public:
   OdbcScanBind(ClientContext &context, TableFunctionBindInput &input,
                vector<LogicalType> &return_types, vector<string> &names) {
     auto bind_data = make_uniq<OdbcScanBindData>();
-    bind_data->dsn = input.inputs[0].GetValue<string>();
+    bind_data->connection_string = input.inputs[0].GetValue<string>();
     bind_data->schema_name = input.inputs[1].GetValue<string>();
     bind_data->table_name = input.inputs[2].GetValue<string>();
 
@@ -298,7 +298,7 @@ public:
 
     bind_data->connection = make_shared<OdbcConnection>();
     bind_data->connection->Init(bind_data->environment);
-    bind_data->connection->Dial(bind_data->dsn);
+    bind_data->connection->Dial(bind_data->connection_string);
 
     bind_data->statement = make_uniq<OdbcStatement>(bind_data->connection);
     bind_data->statement->Init();
@@ -335,8 +335,7 @@ public:
   static unique_ptr<GlobalTableFunctionState>
   OdbcScanInitGlobalState(ClientContext &context,
                           TableFunctionInitInput &input) {
-    auto global_state = make_uniq<OdbcScanGlobalState>();
-    return global_state;
+    return make_uniq<OdbcScanGlobalState>();
   }
 
   static unique_ptr<LocalTableFunctionState>
