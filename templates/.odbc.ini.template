@@ -1,2 +1,5 @@
 [db2 odbctest]
 Driver = db2
+
+[postgres odbc_test]
+Driver = postgres

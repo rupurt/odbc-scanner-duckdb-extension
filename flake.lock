@@ -74,11 +74,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1689413211,
-        "narHash": "sha256-dinXFLFSpRFB9ZnccLWYDRRtkk2h2nLIAazEVcOJfQk=",
+        "lastModified": 1689550386,
+        "narHash": "sha256-YLbm7bt2mUeYoYCyTBhvjHmO+W+MT+GzCBP+vZA6d00=",
         "owner": "rupurt",
         "repo": "odbc-drivers-nix",
-        "rev": "a54a47c07e6bdf0d084ac09db8f384f20528b055",
+        "rev": "85f352b51bbaaa0376333f5449b27f41ee7b8150",
         "type": "github"
       },
       "original": {
