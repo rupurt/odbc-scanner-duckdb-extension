@@ -60,7 +60,15 @@ All `development` and `test` tasks should be run within a nix shell
 nix develop -c $SHELL
 ```
 
-Use the official DuckDB `cmake` builder with `nix` to ensure `unixodbc` is linked correctly
+The `odbc-scanner-duckdb-extension` is built with a `clang` toolchain. To enable `clangd` LSP support run the `.clangd`
+generator nix application.
+
+```shell
+nix run .#generate-dot-clangd
+```
+
+To build the extension with the official DuckDB `cmake` toolchain and `clangd` run the build nix application which will link
+to the correct version of `unixodbc`.
 
 ```shell
 nix run .#build

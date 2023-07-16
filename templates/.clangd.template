@@ -1,0 +1,12 @@
+CompileFlags:
+  Add:
+    - -I${PWD}/src/include
+    - -I${UNIX_ODBC_DIR}/include
+    - -I${PWD}/duckdb/src/include
+    - -I${PWD}/duckdb/third_party/re2
+    - -I${PWD}/duckdb/third_party/parquet
+    - -I${PWD}/duckdb/third_party/thrift
+    - -I${PWD}/duckdb/third_party/utf8proc
+    - -I${PWD}/duckdb/third_party/tools/sqlite3_api_wrapper/include
+    - -I${PWD}/duckdb/third_party/tools/sqlite3_api_wrapper/sqlite3_udf_api/include
+    - -I${PWD}/duckdb/third_party/imdb/include

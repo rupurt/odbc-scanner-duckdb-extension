@@ -26,18 +26,10 @@
         generate-dot-clangd = {
           type = "app";
           program = toString (pkgs.writeScript "generate-dot-clangd" ''
-            echo "CompileFlags:" > .clangd
-            echo "  Add:" >> .clangd
-            echo "    - -I$PWD/src/include" >> .clangd
-            echo "    - -I${pkgs.unixODBC}/include" >> .clangd
-            echo "    - -I$PWD/duckdb/src/include" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/re2" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/parquet" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/thrift" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/utf8proc" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/tools/sqlite3_api_wrapper/include" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/tools/sqlite3_api_wrapper/sqlite3_udf_api/include" >> .clangd
-            echo "    - -I$PWD/duckdb/third_party/imdb/include" >> .clangd
+            UNIX_ODBC_DIR=${pkgs.unixODBC} \
+              envsubst < ./templates/.clangd.template > .clangd
+          '');
+        };
           '');
         };
         load-db2-schema = {
