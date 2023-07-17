@@ -1,19 +1,18 @@
 #define DUCKDB_EXTENSION_MAIN
 
 #include "odbc_scanner_extension.hpp"
+#include "odbc_attach.hpp"
 #include "odbc_scan.hpp"
 #include "odbc_write.hpp"
 
 #include "duckdb.hpp"
-
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/function/scalar_function.hpp"
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/main/extension_util.hpp"
-
-#include "duckdb/parser/parsed_data/create_table_function_info.hpp"
 #include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
+#include "duckdb/parser/parsed_data/create_table_function_info.hpp"
 
 namespace duckdb {
 static void LoadInternal(DatabaseInstance &instance) {
@@ -29,13 +28,23 @@ static void LoadInternal(DatabaseInstance &instance) {
   auto &context = *con.context;
   auto &catalog = Catalog::GetSystemCatalog(context);
 
-  OdbcScanFunction odbc_scan_fun;
-  CreateTableFunctionInfo odbc_scan_info(odbc_scan_fun);
-  catalog.CreateTableFunction(context, odbc_scan_info);
+  OdbcScanFunction scan_fun;
+  CreateTableFunctionInfo scan_info(scan_fun);
+  catalog.CreateTableFunction(context, scan_info);
 
-  // OdbcScanFunctionFilterPushdown odbc_scan_fun_filter_pushdown;
-  // CreateTableFunctionInfo odbc_scan_filter_pushdown_info(odbc_scan_fun_filter_pushdown);
-  // catalog.CreateTableFunction(context, odbc_scan_filter_pushdown_info);
+  OdbcScanFunctionFilterPushdown scan_fun_filter_pushdown;
+  CreateTableFunctionInfo scan_filter_pushdown_info(scan_fun_filter_pushdown);
+  catalog.CreateTableFunction(context, scan_filter_pushdown_info);
+
+  TableFunction attach_fun("odbc_attach", {LogicalType::VARCHAR},
+                           AttachFunction, AttachBind);
+  attach_fun.named_parameters["overwrite"] = LogicalType::BOOLEAN;
+  attach_fun.named_parameters["filter_pushdown"] = LogicalType::BOOLEAN;
+  attach_fun.named_parameters["source_schema"] = LogicalType::VARCHAR;
+  attach_fun.named_parameters["sink_schema"] = LogicalType::VARCHAR;
+  attach_fun.named_parameters["suffix"] = LogicalType::VARCHAR;
+  CreateTableFunctionInfo attach_info(attach_fun);
+  catalog.CreateTableFunction(context, attach_info);
 
   con.Commit();
 }
