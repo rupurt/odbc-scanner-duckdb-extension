@@ -74,13 +74,17 @@ services:
   mariadb:
     image: mariadb:11.0.2
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
     environment:
       - MARIADB_USER=mariadb
       - MARIADB_PASSWORD=password
       - MARIADB_ROOT_PASSWORD=password
+    # healthcheck:
+    #   test: ["CMD", "mariadb-admin" ,"ping", "-h", "localhost"]
+    #   interval: 1s
+    #   retries: 120
 
 volumes:
   db2_data: {}
