@@ -33,6 +33,10 @@ static void LoadInternal(DatabaseInstance &instance) {
   CreateTableFunctionInfo odbc_scan_info(odbc_scan_fun);
   catalog.CreateTableFunction(context, odbc_scan_info);
 
+  // OdbcScanFunctionFilterPushdown odbc_scan_fun_filter_pushdown;
+  // CreateTableFunctionInfo odbc_scan_filter_pushdown_info(odbc_scan_fun_filter_pushdown);
+  // catalog.CreateTableFunction(context, odbc_scan_filter_pushdown_info);
+
   con.Commit();
 }
 
