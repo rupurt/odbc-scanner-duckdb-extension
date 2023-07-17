@@ -1,0 +1,24 @@
+# name: test/sql/odbc_attach_db2.test
+# description: test odbc_scanner extension
+# group: [odbc_attach]
+
+# Before we load the extension, this will fail
+statement error
+CALL odbc_attach('DSN={db2 odbctest};Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000');
+----
+Catalog Error: Table Function with name odbc_attach does not exist!
+
+# Require statement will ensure this test is run with this extension loaded
+require odbc_scanner
+
+# Confirm the extension works
+statement ok
+CALL odbc_attach('DSN={db2 odbctest};Hostname=localhost;Database=odbctest;Uid=db2inst1;Pwd=password;Port=50000');
+
+query III
+SELECT * FROM people;
+----
+Lebron James	37	100.1
+Spiderman	25	200.2
+Wonder Woman	21	300.3
+David Bowie	69	400.4
