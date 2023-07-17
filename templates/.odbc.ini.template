@@ -3,3 +3,6 @@ Driver = db2
 
 [postgres odbc_test]
 Driver = postgres
+
+[mysql odbc_test]
+Driver = mysql

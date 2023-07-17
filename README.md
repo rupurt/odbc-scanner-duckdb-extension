@@ -34,7 +34,7 @@ This extension is tested and known to work with the ODBC drivers of the followin
 | MSSQL      | [odbc_scan_msql](./test/sql/odbc_scan_mssql.test)          | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
 | Oracle     | [odbc_scan_oracle](./test/sql/odbc_scan_oracle.test)       | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
 | Postgres   | [odbc_scan_postgres](./test/sql/odbc_scan_postgres.test)   | `[x]`        | `[x]`       | `[x]`       | `[x]`        |
-| MySQL      | [odbc_scan_mysql](./test/sql/odbc_scan_mysql.test)         | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
+| MySQL      | [odbc_scan_mysql](./test/sql/odbc_scan_mysql.test)         | `[x]`        | `[x]`       | `[x]`       | `[x]`        |
 | MariaDB    | [odbc_scan_mariadb](./test/sql/odbc_scan_mariadb.test)     | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
 | Snowflake  | [odbc_scan_snowflake](./test/sql/odbc_scan_snowflake.test) | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |
 | BigQuery   | [odbc_scan_big_query](./test/sql/odbc_scan_big_query.test) | `[ ]`        | `[ ]`       | `[ ]`       | `[ ]`        |

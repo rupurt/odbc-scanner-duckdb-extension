@@ -4,7 +4,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    odbc-drivers.url = "github:rupurt/odbc-drivers-nix";
+    # odbc-drivers.url = "github:rupurt/odbc-drivers-nix";
+    odbc-drivers.url = "github:rupurt/odbc-drivers-nix/deb82019082cc216524cf118942efabfccdfcaf6";
   };
 
   outputs = {
@@ -23,6 +24,7 @@
           rev = "8ad5e8132c5dcf977e308e7bf5517cc6cc0bf7d8";
         }) {
           inherit system;
+          # config = { allowUnfree = true; };
           overlays = [
             odbc-drivers.overlay
           ];
@@ -32,7 +34,14 @@
       # packages exported by the flake
       packages = {
         db2-odbc-driver = pkgs.db2-odbc-driver {};
+        mssql-odbc-driver = pkgs.mssql-odbc-driver {};
+        oracle-odbc-driver = pkgs.oracle-odbc-driver {};
         postgres-odbc-driver = pkgs.postgres-odbc-driver {};
+        mysql-odbc-driver = pkgs.mysql-odbc-driver {};
+        maria-db-odbc-driver = pkgs.maria-db-odbc-driver {};
+        snowflake-odbc-driver = pkgs.snowflake-odbc-driver {};
+        big-query-odbc-driver = pkgs.big-query-odbc-driver {};
+        mongo-db-odbc-driver = pkgs.mongo-db-odbc-driver {};
       };
 
       # nix run
@@ -55,6 +64,7 @@
           program = toString (pkgs.writeScript "generate-odbcinst-ini" ''
             DB2_DRIVER_PATH=${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"} \
             POSTGRES_DRIVER_PATH=${packages.postgres-odbc-driver}/lib/psqlodbca.so \
+            MYSQL_DRIVER_PATH=${packages.mysql-odbc-driver}/lib/libmyodbc8a.so \
               envsubst < ./templates/.odbcinst.ini.template > .odbcinst.ini
           '');
         };
@@ -63,6 +73,7 @@
           program = toString (pkgs.writeScript "ls-odbc-driver-paths" ''
             echo "db2 ${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"}"
             echo "postgres ${packages.postgres-odbc-driver}/lib/psqlodbca.so"
+            echo "mysql ${packages.mysql-odbc-driver}/lib/libmyodbc8a.so"
           '');
         };
         load-db2-schema = {
@@ -82,7 +93,14 @@
                 ninja
                 openssl
                 packages.db2-odbc-driver
+                packages.mssql-odbc-driver
+                packages.oracle-odbc-driver
                 packages.postgres-odbc-driver
+                packages.mysql-odbc-driver
+                packages.maria-db-odbc-driver
+                packages.snowflake-odbc-driver
+                packages.big-query-odbc-driver
+                packages.mongo-db-odbc-driver
               ]
             )}:$PATH"
             export CC=${stdenv.cc}/bin/clang
@@ -107,7 +125,14 @@
                 ninja
                 openssl
                 packages.db2-odbc-driver
+                packages.mssql-odbc-driver
+                packages.oracle-odbc-driver
                 packages.postgres-odbc-driver
+                packages.mysql-odbc-driver
+                packages.maria-db-odbc-driver
+                packages.snowflake-odbc-driver
+                packages.big-query-odbc-driver
+                packages.mongo-db-odbc-driver
               ]
             )}:$PATH"
             export CC=${stdenv.cc}/bin/clang
@@ -141,7 +166,14 @@
           # psql cli
           pkgs.postgresql_15
           packages.db2-odbc-driver
+          packages.mssql-odbc-driver
+          packages.oracle-odbc-driver
           packages.postgres-odbc-driver
+          packages.mysql-odbc-driver
+          packages.maria-db-odbc-driver
+          packages.snowflake-odbc-driver
+          packages.big-query-odbc-driver
+          packages.mongo-db-odbc-driver
         ];
       };
     });
