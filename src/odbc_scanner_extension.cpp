@@ -2,7 +2,6 @@
 
 #include "odbc_scanner_extension.hpp"
 #include "odbc_scan.hpp"
-#include "odbc_write.hpp"
 
 #include "duckdb.hpp"
 
@@ -17,11 +16,6 @@
 
 namespace duckdb {
 static void LoadInternal(DatabaseInstance &instance) {
-  // scalar functions
-  auto odbc_write_scalar_function = ScalarFunction("odbc_write", {LogicalType::VARCHAR},
-                                                   LogicalType::VARCHAR, OdbcWriteScalarFun);
-  ExtensionUtil::RegisterFunction(instance, odbc_write_scalar_function);
-
   // table functions
   Connection con(instance);
   con.BeginTransaction();
@@ -31,10 +25,6 @@ static void LoadInternal(DatabaseInstance &instance) {
   OdbcScanFunction odbc_scan_fun;
   CreateTableFunctionInfo odbc_scan_info(odbc_scan_fun);
   catalog.CreateTableFunction(context, odbc_scan_info);
-
-  // OdbcScanFunctionFilterPushdown odbc_scan_fun_filter_pushdown;
-  // CreateTableFunctionInfo odbc_scan_filter_pushdown_info(odbc_scan_fun_filter_pushdown);
-  // catalog.CreateTableFunction(context, odbc_scan_filter_pushdown_info);
 
   con.Commit();
 }
