@@ -72,15 +72,6 @@ public:
   SQLHENV Handle() const { return handle; }
 };
 
-struct OdbcStatementOptions {
-  OdbcStatementOptions(SQLINTEGER _row_array_size) : row_array_size(_row_array_size) {}
-
-  SQLINTEGER row_array_size;
-
-public:
-  SQLULEN RowArraySize() { return row_array_size; }
-};
-
 #define MAXCOLS 1024
 
 struct OdbcColumnDescription {
@@ -344,6 +335,12 @@ public:
   SQLHSTMT HandleConn() { return handle_conn; }
 };
 
+struct OdbcStatementOptions {
+  OdbcStatementOptions(SQLULEN _row_array_size) : row_array_size(_row_array_size) {}
+
+  SQLULEN row_array_size;
+};
+
 struct OdbcStatement {
   OdbcStatement(shared_ptr<OdbcConnection> _conn)
       : conn(_conn), handle(SQL_NULL_HSTMT), prepared(false), executing(false) {}
@@ -573,7 +570,7 @@ public:
     }
 
     SetAttribute(SQL_ATTR_ROW_BIND_TYPE, SQL_BIND_BY_COLUMN);
-    SetAttribute(SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)opts->RowArraySize());
+    SetAttribute(SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)opts->row_array_size);
 
     auto execute_sql_return = SQLExecute(handle);
     if (execute_sql_return == SQL_SUCCESS || execute_sql_return == SQL_SUCCESS_WITH_INFO) {

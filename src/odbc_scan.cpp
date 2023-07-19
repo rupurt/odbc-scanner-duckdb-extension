@@ -257,7 +257,7 @@ static unique_ptr<LocalTableFunctionState>
 OdbcScanInitLocalState(ExecutionContext &context, TableFunctionInitInput &input,
                        GlobalTableFunctionState *global_state) {
   auto &bind_data = input.bind_data->Cast<OdbcScanBindData>();
-  auto row_array_size = bind_data.statement_opts->RowArraySize();
+  auto row_array_size = bind_data.statement_opts->row_array_size;
   auto local_state = make_uniq<OdbcScanLocalState>(row_array_size);
 
   bind_data.statement->SetAttribute(SQL_ATTR_ROW_STATUS_PTR,
