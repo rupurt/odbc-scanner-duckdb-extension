@@ -44,6 +44,12 @@
               envsubst < ./templates/.clangd.template > .clangd
           '');
         };
+        generate-dot-clang-format = {
+          type = "app";
+          program = toString (pkgs.writeScript "generate-dot-clang-format" ''
+            cp ./templates/.clang-format.template .clang-format
+          '');
+        };
         generate-odbc-ini = {
           type = "app";
           program = toString (pkgs.writeScript "generate-odbc-ini" ''
