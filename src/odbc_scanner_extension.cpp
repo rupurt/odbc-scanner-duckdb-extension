@@ -12,15 +12,14 @@
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/main/extension_util.hpp"
 
-#include "duckdb/parser/parsed_data/create_table_function_info.hpp"
 #include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
+#include "duckdb/parser/parsed_data/create_table_function_info.hpp"
 
 namespace duckdb {
 static void LoadInternal(DatabaseInstance &instance) {
   // scalar functions
-  auto odbc_write_scalar_function =
-      ScalarFunction("odbc_write", {LogicalType::VARCHAR}, LogicalType::VARCHAR,
-                     OdbcWriteScalarFun);
+  auto odbc_write_scalar_function = ScalarFunction("odbc_write", {LogicalType::VARCHAR},
+                                                   LogicalType::VARCHAR, OdbcWriteScalarFun);
   ExtensionUtil::RegisterFunction(instance, odbc_write_scalar_function);
 
   // table functions
@@ -45,13 +44,9 @@ std::string Odbc_scannerExtension::Name() { return "odbc_scanner"; }
 } // namespace duckdb
 
 extern "C" {
-DUCKDB_EXTENSION_API void odbc_scanner_init(duckdb::DatabaseInstance &db) {
-  LoadInternal(db);
-}
+DUCKDB_EXTENSION_API void odbc_scanner_init(duckdb::DatabaseInstance &db) { LoadInternal(db); }
 
-DUCKDB_EXTENSION_API const char *odbc_scanner_version() {
-  return duckdb::DuckDB::LibraryVersion();
-}
+DUCKDB_EXTENSION_API const char *odbc_scanner_version() { return duckdb::DuckDB::LibraryVersion(); }
 }
 
 #ifndef DUCKDB_EXTENSION_MAIN

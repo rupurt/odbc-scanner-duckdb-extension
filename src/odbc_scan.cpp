@@ -5,8 +5,7 @@
 #include "duckdb/function/table_function.hpp"
 
 namespace duckdb {
-static LogicalType
-OdbcColumnToDuckDBLogicalType(OdbcColumnDescription col_desc) {
+static LogicalType OdbcColumnToDuckDBLogicalType(OdbcColumnDescription col_desc) {
   if (col_desc.sql_data_type == SQL_CHAR) {
     return LogicalType::VARCHAR;
   }
@@ -124,8 +123,7 @@ OdbcColumnToDuckDBLogicalType(OdbcColumnDescription col_desc) {
   return LogicalType::INVALID;
 }
 
-static void OdbcScan(ClientContext &context, TableFunctionInput &data,
-                     DataChunk &output) {
+static void OdbcScan(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
   auto &bind_data = data.bind_data->Cast<OdbcScanBindData>();
   auto local_state = data.local_state->Cast<OdbcScanLocalState>();
 
@@ -137,25 +135,20 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data,
 
   for (auto r = 0; r < rows_fetched; r++) {
     auto row_status = local_state.row_status[r];
-    if ((row_status == SQL_ROW_SUCCESS) ||
-        (row_status == SQL_ROW_SUCCESS_WITH_INFO)) {
+    if ((row_status == SQL_ROW_SUCCESS) || (row_status == SQL_ROW_SUCCESS_WITH_INFO)) {
       for (auto c = 0; c < local_state.column_bindings.size(); c++) {
         auto column_binding = &local_state.column_bindings.at(c);
-        auto buffer =
-            &column_binding->buffer[r * column_binding->column_buffer_length];
+        auto buffer = &column_binding->buffer[r * column_binding->column_buffer_length];
 
         switch (column_binding->sql_data_type) {
         case SQL_SMALLINT:
-          output.SetValue(c, local_state.offset,
-                          Value(*(std::int16_t *)buffer));
+          output.SetValue(c, local_state.offset, Value(*(std::int16_t *)buffer));
           break;
         case SQL_INTEGER:
-          output.SetValue(c, local_state.offset,
-                          Value(*(std::int32_t *)buffer));
+          output.SetValue(c, local_state.offset, Value(*(std::int32_t *)buffer));
           break;
         case SQL_BIGINT:
-          output.SetValue(c, local_state.offset,
-                          Value(*(std::int64_t *)buffer));
+          output.SetValue(c, local_state.offset, Value(*(std::int64_t *)buffer));
           break;
         case SQL_DOUBLE:
         case SQL_FLOAT:
@@ -179,28 +172,27 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data,
           output.SetValue(c, local_state.offset, Value((char *)buffer));
           break;
         default:
-          throw Exception(
-              "OdbcScanFunction#OdbcScan() unhandled output "
-              "mapping from ODBC to DuckDB sql_data_type=" +
-              std::to_string(column_binding->sql_data_type) +
-              ", c_data_type=" + std::to_string(column_binding->c_data_type));
+          throw Exception("OdbcScanFunction#OdbcScan() unhandled output "
+                          "mapping from ODBC to DuckDB sql_data_type=" +
+                          std::to_string(column_binding->sql_data_type) +
+                          ", c_data_type=" + std::to_string(column_binding->c_data_type));
         }
       }
     } else if (row_status == SQL_ROW_NOROW) {
-      throw Exception("OdbcScanFunction#OdbcScan() row status=" +
-                      std::to_string(row_status) + " SQL_ROW_NOROW");
+      throw Exception("OdbcScanFunction#OdbcScan() row status=" + std::to_string(row_status) +
+                      " SQL_ROW_NOROW");
     } else if (row_status == SQL_ROW_ERROR) {
-      throw Exception("OdbcScanFunction#OdbcScan() row status=" +
-                      std::to_string(row_status) + " SQL_ROW_ERROR");
+      throw Exception("OdbcScanFunction#OdbcScan() row status=" + std::to_string(row_status) +
+                      " SQL_ROW_ERROR");
     } else if (row_status == SQL_ROW_PROCEED) {
-      throw Exception("OdbcScanFunction#OdbcScan() row status=" +
-                      std::to_string(row_status) + " SQL_ROW_PROCEED");
+      throw Exception("OdbcScanFunction#OdbcScan() row status=" + std::to_string(row_status) +
+                      " SQL_ROW_PROCEED");
     } else if (row_status == SQL_ROW_IGNORE) {
-      throw Exception("OdbcScanFunction#OdbcScan() row status=" +
-                      std::to_string(row_status) + " SQL_ROW_IGNORE");
+      throw Exception("OdbcScanFunction#OdbcScan() row status=" + std::to_string(row_status) +
+                      " SQL_ROW_IGNORE");
     } else {
-      throw Exception("OdbcScanFunction#OdbcScan() row status=" +
-                      std::to_string(row_status) + " SQL_ROW_UNKNOWN");
+      throw Exception("OdbcScanFunction#OdbcScan() row status=" + std::to_string(row_status) +
+                      " SQL_ROW_UNKNOWN");
     }
 
     // TODO:
@@ -210,8 +202,7 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data,
   }
 }
 
-static unique_ptr<FunctionData> OdbcScanBind(ClientContext &context,
-                                             TableFunctionBindInput &input,
+static unique_ptr<FunctionData> OdbcScanBind(ClientContext &context, TableFunctionBindInput &input,
                                              vector<LogicalType> &return_types,
                                              vector<string> &names) {
   auto bind_data = make_uniq<OdbcScanBindData>();
@@ -248,8 +239,7 @@ static unique_ptr<FunctionData> OdbcScanBind(ClientContext &context,
   // bind_data->statement_opts = make_uniq<OdbcStatementOptions>(2);
   // bind_data->statement_opts =
   // make_uniq<OdbcStatementOptions>(STANDARD_VECTOR_SIZE * 2);
-  bind_data->statement_opts =
-      make_uniq<OdbcStatementOptions>(STANDARD_VECTOR_SIZE);
+  bind_data->statement_opts = make_uniq<OdbcStatementOptions>(STANDARD_VECTOR_SIZE);
   bind_data->statement->Execute(bind_data->statement_opts);
 
   names = bind_data->names;
@@ -258,8 +248,8 @@ static unique_ptr<FunctionData> OdbcScanBind(ClientContext &context,
   return std::move(bind_data);
 }
 
-static unique_ptr<GlobalTableFunctionState>
-OdbcScanInitGlobalState(ClientContext &context, TableFunctionInitInput &input) {
+static unique_ptr<GlobalTableFunctionState> OdbcScanInitGlobalState(ClientContext &context,
+                                                                    TableFunctionInitInput &input) {
   return make_uniq<OdbcScanGlobalState>();
 }
 
@@ -278,9 +268,9 @@ OdbcScanInitLocalState(ExecutionContext &context, TableFunctionInitInput &input,
 
     local_state->column_bindings.emplace_back(col_desc, row_array_size);
     auto column_binding = &local_state->column_bindings.at(c);
-    bind_data.statement->BindColumn(
-        c + 1, column_binding->c_data_type, column_binding->buffer,
-        column_binding->column_buffer_length, column_binding->strlen_or_ind);
+    bind_data.statement->BindColumn(c + 1, column_binding->c_data_type, column_binding->buffer,
+                                    column_binding->column_buffer_length,
+                                    column_binding->strlen_or_ind);
   }
 
   return std::move(local_state);
@@ -294,11 +284,8 @@ static string OdbcScanToString(const FunctionData *bind_data_p) {
 }
 
 OdbcScanFunction::OdbcScanFunction()
-    : TableFunction(
-          "odbc_scan",
-          {LogicalType::VARCHAR, LogicalType::VARCHAR, LogicalType::VARCHAR},
-          OdbcScan, OdbcScanBind, OdbcScanInitGlobalState,
-          OdbcScanInitLocalState) {
+    : TableFunction("odbc_scan", {LogicalType::VARCHAR, LogicalType::VARCHAR, LogicalType::VARCHAR},
+                    OdbcScan, OdbcScanBind, OdbcScanInitGlobalState, OdbcScanInitLocalState) {
   to_string = OdbcScanToString;
   // projection_pushdown = true;
 }

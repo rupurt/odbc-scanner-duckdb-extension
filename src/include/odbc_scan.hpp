@@ -28,12 +28,8 @@ struct OdbcScanBindData : public FunctionData {
   vector<OdbcColumnDescription> column_descriptions;
 
 public:
-  unique_ptr<FunctionData> Copy() const override {
-    throw NotImplementedException("");
-  }
-  bool Equals(const FunctionData &other) const override {
-    throw NotImplementedException("");
-  }
+  unique_ptr<FunctionData> Copy() const override { throw NotImplementedException(""); }
+  bool Equals(const FunctionData &other) const override { throw NotImplementedException(""); }
 };
 
 struct OdbcColumnBinding {
