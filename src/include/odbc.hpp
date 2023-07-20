@@ -1,13 +1,12 @@
 #pragma once
 
-#include "duckdb.hpp"
+#include "exception.hpp"
 
+#include "duckdb.hpp"
 #include "duckdb/function/table_function.hpp"
 
 #include "sql.h"
 #include "sqlext.h"
-
-#include <iostream>
 
 namespace duckdb {
 struct OdbcEnvironment {
@@ -18,137 +17,72 @@ struct OdbcEnvironment {
 
   void FreeHandle() {
     if (handle != SQL_NULL_HENV) {
-      auto sql_return = SQLFreeHandle(SQL_HANDLE_ENV, handle);
-      if (sql_return == SQL_SUCCESS) {
-        return;
-      } else if (sql_return == SQL_INVALID_HANDLE) {
-        throw Exception("OdbcEnvironment->Init() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_INVALID_HANDLE");
-      } else if (sql_return == SQL_ERROR) {
-        throw Exception("OdbcEnvironment->Init() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_ERROR");
-      } else {
-        throw Exception("OdbcEnvironment->Init() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " UNKNOWN_SQL_RETURN");
+      auto return_code = SQLFreeHandle(SQL_HANDLE_ENV, handle);
+      if (!SQL_SUCCEEDED(return_code)) {
+        ThrowExceptionWithDiagnostics("OdbcEnvironment->Init() SQLFreeHandle", handle, return_code);
       }
     }
   }
 
 public:
   void Init() {
+    SQLRETURN return_code;
+
     if (handle != SQL_NULL_HENV) {
       throw Exception("OdbcEnvironment->Init() handle is not null");
     }
 
-    auto alloc_sql_return = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HENV, &handle);
-    if (alloc_sql_return == SQL_SUCCESS || alloc_sql_return == SQL_SUCCESS_WITH_INFO) {
+    return_code = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HENV, &handle);
+    if (return_code == SQL_SUCCESS || return_code == SQL_SUCCESS_WITH_INFO) {
       // ok
-    } else if (alloc_sql_return == SQL_INVALID_HANDLE) {
+    } else if (return_code == SQL_INVALID_HANDLE) {
       throw Exception("OdbcEnvironment->Init() SQLAllocHandle SQL_RETURN=" +
-                      std::to_string(alloc_sql_return) + " SQL_INVALID_HANDLE");
-    } else if (alloc_sql_return == SQL_ERROR) {
+                      std::to_string(return_code) + " SQL_INVALID_HANDLE");
+    } else if (return_code == SQL_ERROR) {
       throw Exception("OdbcEnvironment->Init() SQLAllocHandle SQL_RETURN=" +
-                      std::to_string(alloc_sql_return) + " SQL_ERROR");
+                      std::to_string(return_code) + " SQL_ERROR");
     } else {
       throw Exception("OdbcEnvironment->Init() SQLAllocHandle SQL_RETURN=" +
-                      std::to_string(alloc_sql_return) + " UNKNOWN_SQL_RETURN");
+                      std::to_string(return_code) + " UNKNOWN_SQL_RETURN");
     }
 
-    auto set_env_sql_return =
-        SQLSetEnvAttr(handle, SQL_ATTR_ODBC_VERSION, (SQLPOINTER *)SQL_OV_ODBC3, 0);
-    if (set_env_sql_return == SQL_SUCCESS) {
-      return;
-    } else if (set_env_sql_return == SQL_INVALID_HANDLE) {
-      throw Exception("OdbcEnvironment->Init() SQLSetEnvAttr SQL_RETURN=" +
-                      std::to_string(set_env_sql_return) + " SQL_INVALID_HANDLE");
-    } else if (set_env_sql_return == SQL_ERROR) {
-      throw Exception("OdbcEnvironment->Init() SQLSetEnvAttr SQL_RETURN=" +
-                      std::to_string(set_env_sql_return) + " SQL_ERROR");
-    } else {
-      throw Exception("OdbcEnvironment->Init() SQLSetEnvAttr SQL_RETURN=" +
-                      std::to_string(set_env_sql_return) + " UNKNOWN_SQL_RETURN");
+    return_code = SQLSetEnvAttr(handle, SQL_ATTR_ODBC_VERSION, (SQLPOINTER *)SQL_OV_ODBC3, 0);
+    if (!SQL_SUCCEEDED(return_code)) {
+      ThrowExceptionWithDiagnostics("OdbcEnvironment->Init() SQLSetEnvAttr", handle, return_code);
     }
   }
   SQLHENV Handle() const { return handle; }
 };
 
-#define MAXCOLS 1024
-
-struct OdbcColumnDescription {
-  SQLCHAR name[32];
-  SQLSMALLINT name_length;
-  SQLSMALLINT sql_data_type;
-  SQLSMALLINT c_data_type;
-  SQLULEN size;
-  SQLULEN length;
-  SQLSMALLINT decimal_digits;
-  SQLSMALLINT nullable;
-};
-
-struct OdbcDiagnostics {
-  string msg;
-  string state;
-  SQLINTEGER native;
-};
-
-static unique_ptr<OdbcDiagnostics> ExtractDiagnostics(SQLSMALLINT handle_type, SQLHANDLE handle) {
-  SQLINTEGER i = 0;
-  SQLINTEGER native;
-  SQLCHAR state[7];
-  SQLCHAR text[256];
-  SQLSMALLINT len;
-  SQLRETURN diag_return;
-  auto diagnostics = make_uniq<OdbcDiagnostics>();
-
-  do {
-    diag_return = SQLGetDiagRec(handle_type, handle, ++i, state, &native, text, sizeof(text), &len);
-    if (SQL_SUCCEEDED(diag_return)) {
-      diagnostics->msg += string((char *)text);
-      diagnostics->state = string((char *)state);
-      diagnostics->native = native;
-    }
-  } while (diag_return == SQL_SUCCESS);
-
-  return std::move(diagnostics);
-}
-
 #define MAX_CONN_STR_OUT 1024
 
 struct OdbcConnection {
-  OdbcConnection() : handle_conn(SQL_NULL_HDBC), dialed(false) {}
+  OdbcConnection() : handle(SQL_NULL_HDBC), dialed(false) {}
   ~OdbcConnection() {
     Disconnect();
-    FreeHandleConn();
+    FreeHandle();
   }
 
-  SQLHDBC handle_conn;
+  SQLHDBC handle;
   bool dialed;
 
-  void FreeHandleConn() {
-    if (handle_conn != SQL_NULL_HDBC) {
-      auto sql_return = SQLFreeHandle(SQL_HANDLE_DBC, handle_conn);
-      if (sql_return == SQL_SUCCESS || sql_return == SQL_SUCCESS_WITH_INFO) {
-        return;
-      } else if (sql_return == SQL_INVALID_HANDLE) {
-        throw Exception("OdbcConnection->FreeConnHandle() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_INVALID_HANDLE");
-      } else if (sql_return == SQL_ERROR) {
-        throw Exception("OdbcConnection->FreeConnHandle() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_ERROR");
-      } else {
-        throw Exception("OdbcConnection->FreeConnHandle() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " UNKNOWN_SQL_RETURN");
+  void FreeHandle() {
+    if (handle != SQL_NULL_HDBC) {
+      auto return_code = SQLFreeHandle(SQL_HANDLE_DBC, handle);
+      if (!SQL_SUCCEEDED(return_code)) {
+        ThrowExceptionWithDiagnostics("OdbcConnection->FreeHandle() SQLFreeHandle", handle,
+                                      return_code);
       }
     }
   }
 
 public:
   void Init(shared_ptr<OdbcEnvironment> &env) {
-    if (handle_conn != SQL_NULL_HDBC) {
+    if (handle != SQL_NULL_HDBC) {
       throw Exception("OdbcConnection->Init(): connection handle is not null");
     }
 
-    auto sql_return = SQLAllocHandle(SQL_HANDLE_DBC, env->Handle(), &handle_conn);
+    auto sql_return = SQLAllocHandle(SQL_HANDLE_DBC, env->Handle(), &handle);
     if (sql_return == SQL_SUCCESS || sql_return == SQL_SUCCESS_WITH_INFO) {
       return;
     } else if (sql_return == SQL_INVALID_HANDLE) {
@@ -176,30 +110,30 @@ public:
     SQLSMALLINT conn_str_out_len = 0;
     SQLCHAR conn_str_out[MAX_CONN_STR_OUT + 1] = {0};
 
-    auto sql_return = SQLDriverConnect(handle_conn, NULL, (SQLCHAR *)connection_string.c_str(),
+    auto sql_return = SQLDriverConnect(handle, NULL, (SQLCHAR *)connection_string.c_str(),
                                        conn_str_in_len, conn_str_out, (SQLSMALLINT)MAX_CONN_STR_OUT,
                                        &conn_str_out_len, SQL_DRIVER_NOPROMPT);
     if (sql_return == SQL_SUCCESS || sql_return == SQL_SUCCESS_WITH_INFO) {
       dialed = true;
     } else if (sql_return == SQL_NO_DATA_FOUND) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(
           "OdbcConnection->Dial() SQLDriverConnect SQL_RETURN=" + std::to_string(sql_return) +
           " SQL_NO_DATA_FOUND msg='" + diagnostics->msg + "' state=" + diagnostics->state +
           " native=" + std::to_string(diagnostics->native));
     } else if (sql_return == SQL_INVALID_HANDLE) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(
           "OdbcConnection->Dial() SQLDriverConnect SQL_RETURN=" + std::to_string(sql_return) +
           " SQL_INVALID_HANDLE msg='" + diagnostics->msg + "' state=" + diagnostics->state +
           " native=" + std::to_string(diagnostics->native));
     } else if (sql_return == SQL_ERROR) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(std::to_string(sql_return) + " SQL_ERROR msg='" + diagnostics->msg +
                       "' state=" + diagnostics->state +
                       " native=" + std::to_string(diagnostics->native));
     } else {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(
           "OdbcConnection->Dial() SQLDriverConnect SQL_RETURN=" + std::to_string(sql_return) +
           " UNKNOWN_SQL_RETURN msg='" + diagnostics->msg + "' state=" + diagnostics->state +
@@ -211,23 +145,23 @@ public:
       return;
     }
 
-    auto sql_return = SQLDisconnect(handle_conn);
+    auto sql_return = SQLDisconnect(handle);
     if (sql_return == SQL_SUCCESS || sql_return == SQL_SUCCESS_WITH_INFO) {
       return;
     } else if (sql_return == SQL_INVALID_HANDLE) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(
           "OdbcConnection->Disconnect() SQLDisconnect SQL_RETURN=" + std::to_string(sql_return) +
           " SQL_INVALID_HANDLE msg='" + diagnostics->msg + "' state=" + diagnostics->state +
           " native=" + std::to_string(diagnostics->native));
     } else if (sql_return == SQL_ERROR) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(
           "OdbcConnection->Disconnect() SQLDisconnect SQL_RETURN=" + std::to_string(sql_return) +
           " SQL_ERROR msg='" + diagnostics->msg + "' state=" + diagnostics->state +
           " native=" + std::to_string(diagnostics->native));
     } else {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle_conn);
+      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_DBC, handle);
       throw Exception(
           "OdbcConnection->Disconnect() SQLDisconnect SQL_RETURN=" + std::to_string(sql_return) +
           " UNKNOWN_SQL_RETURN msg='" + diagnostics->msg + "' state=" + diagnostics->state +
@@ -235,7 +169,18 @@ public:
     }
     dialed = false;
   }
-  SQLHSTMT HandleConn() { return handle_conn; }
+  SQLHSTMT Handle() { return handle; }
+};
+
+struct OdbcColumnDescription {
+  SQLCHAR name[32];
+  SQLSMALLINT name_length;
+  SQLSMALLINT sql_data_type;
+  SQLSMALLINT c_data_type;
+  SQLULEN size;
+  SQLULEN length;
+  SQLSMALLINT decimal_digits;
+  SQLSMALLINT nullable;
 };
 
 struct OdbcStatementOptions {
@@ -260,18 +205,10 @@ struct OdbcStatement {
 
   void FreeHandle() {
     if (handle != SQL_NULL_HSTMT) {
-      auto sql_return = SQLFreeHandle(SQL_HANDLE_STMT, handle);
-      if (sql_return == SQL_SUCCESS) {
-        return;
-      } else if (sql_return == SQL_INVALID_HANDLE) {
-        throw Exception("OdbcStatement->FreeHandle() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_INVALID_HANDLE");
-      } else if (sql_return == SQL_ERROR) {
-        throw Exception("OdbcStatement->FreeHandle() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_ERROR");
-      } else {
-        throw Exception("OdbcStatement->FreeHandle() SQLFreeHandle SQL_RETURN=" +
-                        std::to_string(sql_return) + " UNKNOWN_SQL_RETURN");
+      SQLRETURN return_code = SQLFreeHandle(SQL_HANDLE_STMT, handle);
+      if (!SQL_SUCCEEDED(return_code)) {
+        ThrowExceptionWithDiagnostics("OdbcStatement->FreeHandle() SQLFreeHandle", handle,
+                                      return_code);
       }
     }
   }
@@ -283,7 +220,7 @@ public:
                       "execute a different statement instantiate a new statement");
     }
 
-    auto sql_return = SQLAllocHandle(SQL_HANDLE_STMT, conn->HandleConn(), &handle);
+    auto sql_return = SQLAllocHandle(SQL_HANDLE_STMT, conn->Handle(), &handle);
     if (sql_return == SQL_SUCCESS || sql_return == SQL_SUCCESS_WITH_INFO) {
       return;
     } else if (sql_return == SQL_INVALID_HANDLE) {
@@ -364,28 +301,10 @@ public:
                       "OdbcStatement#Init() before OdbcStatement#BindColumn()");
     }
 
-    auto sql_return =
+    auto return_code =
         SQLBindCol(handle, column_number, c_data_type, buffer, column_buffer_length, strlen_or_ind);
-    if (sql_return == SQL_SUCCESS) {
-      return;
-    } else if (sql_return == SQL_ERROR) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-      throw Exception(
-          "OdbcStatement->BindColumn() SQLBindCol SQL_RETURN=" + std::to_string(sql_return) +
-          " SQL_ERROR msg='" + diagnostics->msg + "' state=" + diagnostics->state +
-          " native=" + std::to_string(diagnostics->native));
-    } else if (sql_return == SQL_INVALID_HANDLE) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-      throw Exception(
-          "OdbcStatement->BindColumn() SQLBindCol SQL_RETURN=" + std::to_string(sql_return) +
-          " SQL_INVALID_HANDLE msg='" + diagnostics->msg + "' state=" + diagnostics->state +
-          " native=" + std::to_string(diagnostics->native));
-    } else {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-      throw Exception(
-          "OdbcStatement->BindColumn() SQLBindCol SQL_RETURN=" + std::to_string(sql_return) +
-          " UNKNOWN_SQL_RETURN msg='" + diagnostics->msg + "' state=" + diagnostics->state +
-          " native=" + std::to_string(diagnostics->native));
+    if (!SQL_SUCCEEDED(return_code)) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->BindCol() SQLBindCol", handle, return_code);
     }
   }
   SQLSMALLINT NumResultCols() {
@@ -400,30 +319,13 @@ public:
     }
 
     SQLSMALLINT num_result_cols = 0;
-    auto sql_return = SQLNumResultCols(handle, &num_result_cols);
-    if (sql_return == SQL_SUCCESS) {
-      return num_result_cols;
-    } else if (sql_return == SQL_ERROR) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-      throw Exception("OdbcStatement->NumResultCols() SQLNumResultCols SQL_RETURN=" +
-                      std::to_string(sql_return) + " SQL_ERROR msg='" + diagnostics->msg +
-                      "' state=" + diagnostics->state +
-                      " native=" + std::to_string(diagnostics->native));
-    } else if (sql_return == SQL_INVALID_HANDLE) {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-      throw Exception("OdbcStatement->NumResultCols() SQLNumResultCols SQL_RETURN=" +
-                      std::to_string(sql_return) + " SQL_INVALID_HANDLE msg='" + diagnostics->msg +
-                      "' state=" + diagnostics->state +
-                      " native=" + std::to_string(diagnostics->native));
-    } else {
-      auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-      throw Exception("OdbcStatement->NumResultCols() SQLNumResultCols SQL_RETURN=" +
-                      std::to_string(sql_return) + " UNKNOWN_SQL_RETURN msg='" + diagnostics->msg +
-                      "' state=" + diagnostics->state +
-                      " native=" + std::to_string(diagnostics->native));
+    auto return_code = SQLNumResultCols(handle, &num_result_cols);
+    if (!SQL_SUCCEEDED(return_code)) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", handle,
+                                    return_code);
     }
 
-    return 0;
+    return num_result_cols;
   }
   vector<OdbcColumnDescription> DescribeColumns() {
     auto num_result_cols = NumResultCols();
@@ -432,31 +334,16 @@ public:
     for (SQLUSMALLINT i = 0; i < num_result_cols; i++) {
       auto col_desc = &column_descriptions.at(i);
 
-      auto sql_return =
+      auto return_code =
           SQLDescribeCol(handle, i + 1, col_desc->name, sizeof(col_desc->name),
                          &col_desc->name_length, &col_desc->sql_data_type, &col_desc->size,
                          &col_desc->decimal_digits, &col_desc->nullable);
-      if (sql_return == SQL_SUCCESS) {
-        SqlDataTypeToCDataType(col_desc);
-      } else if (sql_return == SQL_ERROR) {
-        auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-        throw Exception("OdbcStatement->DescribeColumns() SQLDescribeCol SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_ERROR msg='" + diagnostics->msg +
-                        "' state=" + diagnostics->state +
-                        " native=" + std::to_string(diagnostics->native));
-      } else if (sql_return == SQL_INVALID_HANDLE) {
-        auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-        throw Exception("OdbcStatement->DescribeColumns() SQLDescribeCol SQL_RETURN=" +
-                        std::to_string(sql_return) + " SQL_INVALID_HANDLE msg='" +
-                        diagnostics->msg + "' state=" + diagnostics->state +
-                        " native=" + std::to_string(diagnostics->native));
-      } else {
-        auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
-        throw Exception("OdbcStatement->DescribeColumns() SQLDescribeCol SQL_RETURN=" +
-                        std::to_string(sql_return) + " UNKNOWN_SQL_RETURN msg='" +
-                        diagnostics->msg + "' state=" + diagnostics->state +
-                        " native=" + std::to_string(diagnostics->native));
+      if (!SQL_SUCCEEDED(return_code)) {
+        ThrowExceptionWithDiagnostics("OdbcStatement->DescribeColumns() SQLDescribeCol", handle,
+                                      return_code);
       }
+
+      SqlDataTypeToCDataType(col_desc);
     }
 
     return column_descriptions;
