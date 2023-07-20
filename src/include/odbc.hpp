@@ -112,103 +112,6 @@ static unique_ptr<OdbcDiagnostics> ExtractDiagnostics(SQLSMALLINT handle_type, S
   return std::move(diagnostics);
 }
 
-static void OdbcSqlDataTypeToCDataType(OdbcColumnDescription *col_desc) {
-  // TODO:
-  // - unixodbc doesn't seem to define all possible sql types
-  switch (col_desc->sql_data_type) {
-  // case SQL_BIT:
-  //   col_desc->c_data_type = SQL_C_BIT;
-  //   col_desc->length = sizeof(SQLCHAR);
-  //   break;
-  case SQL_SMALLINT:
-    col_desc->c_data_type = SQL_C_SHORT;
-    col_desc->length = sizeof(SQLSMALLINT);
-    break;
-  case SQL_INTEGER:
-    col_desc->c_data_type = SQL_C_LONG;
-    col_desc->length = sizeof(SQLINTEGER);
-    break;
-  case SQL_BIGINT:
-    col_desc->c_data_type = SQL_C_SBIGINT;
-    col_desc->length = sizeof(SQLBIGINT);
-    break;
-  // case SQL_DECFLOAT:
-  //   col_desc->c_data_type = SQL_C_CHAR;
-  //   break;
-  case SQL_DECIMAL:
-  case SQL_NUMERIC:
-    col_desc->c_data_type = SQL_C_CHAR;
-    // TODO:
-    // - this calculation is incorrect
-    // - it needs to take into account the scale
-    // - + (precision if decimal digits > 0)
-    // - + (decimal point if decimal digit > 0)
-    // - + (newline???)
-    col_desc->length = col_desc->size + sizeof(SQLCHAR);
-    break;
-  case SQL_DOUBLE:
-  case SQL_FLOAT:
-    col_desc->c_data_type = SQL_C_DOUBLE;
-    col_desc->length = sizeof(double);
-    break;
-  case SQL_REAL:
-    col_desc->c_data_type = SQL_C_FLOAT;
-    col_desc->length = sizeof(float);
-    break;
-  case SQL_CHAR:
-  // case SQL_CLOB:
-  case SQL_VARCHAR:
-  case SQL_LONGVARCHAR:
-    col_desc->c_data_type = SQL_C_CHAR;
-    col_desc->length = col_desc->size + sizeof(SQLCHAR);
-    break;
-  case SQL_BINARY:
-  // case SQL_BLOB:
-  case SQL_VARBINARY:
-  case SQL_LONGVARBINARY:
-    col_desc->c_data_type = SQL_C_BINARY;
-    col_desc->length = col_desc->size + sizeof(SQLCHAR);
-    break;
-  // case SQL_BLOB_LOCATOR:
-  //   col_desc->c_data_type = SQL_C_BLOB_LOCATOR;
-  //   break;
-  // case SQL_DBCLOB:
-  // case SQL_GRAPHIC:
-  // case SQL_LONGVARGRAPHIC:
-  // case SQL_VARGRAPHIC:
-  //   col_desc->c_data_type = SQL_C_DBCHAR;
-  //   break;
-  // case SQL_DBCLOB_LOCATOR:
-  //   col_desc->c_data_type = SQL_C_DBCLOB_LOCATOR;
-  //   break;
-  // case SQL_CLOB_LOCATOR:
-  //   col_desc->c_data_type = SQL_C_CLOB_LOCATOR;
-  //   break;
-  // case SQL_ROWID:
-  //   col_desc->c_data_type = SQL_C_CHAR;
-  //   break;
-  case SQL_TYPE_DATE:
-    col_desc->c_data_type = SQL_C_TYPE_DATE;
-    col_desc->length = col_desc->size + sizeof(SQLCHAR);
-    break;
-  case SQL_TYPE_TIME:
-    col_desc->c_data_type = SQL_C_TYPE_TIME;
-    col_desc->length = col_desc->size + sizeof(SQLCHAR);
-    break;
-  case SQL_TYPE_TIMESTAMP:
-    col_desc->c_data_type = SQL_C_TYPE_TIMESTAMP;
-    col_desc->length = col_desc->size + sizeof(SQLCHAR);
-    break;
-  // case SQL_XML:
-  //   col_desc->c_data_type = SQL_C_BINARY;
-  //   break;
-  default:
-    throw Exception("OdbcSqlDataTypeToCDataType() unknown sql_data_type=" +
-                    std::to_string(col_desc->sql_data_type));
-    break;
-  }
-}
-
 #define MAX_CONN_STR_OUT 1024
 
 struct OdbcConnection {
@@ -534,7 +437,7 @@ public:
                          &col_desc->name_length, &col_desc->sql_data_type, &col_desc->size,
                          &col_desc->decimal_digits, &col_desc->nullable);
       if (sql_return == SQL_SUCCESS) {
-        OdbcSqlDataTypeToCDataType(col_desc);
+        SqlDataTypeToCDataType(col_desc);
       } else if (sql_return == SQL_ERROR) {
         auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
         throw Exception("OdbcStatement->DescribeColumns() SQLDescribeCol SQL_RETURN=" +
@@ -655,6 +558,104 @@ public:
           "OdbcStatement->Fetch() SQLFetchScroll SQL_RETURN=" + std::to_string(execute_sql_return) +
           " UNKNOWN_SQL_RETURN msg='" + diagnostics->msg + "' state=" + diagnostics->state +
           " native=" + std::to_string(diagnostics->native));
+    }
+  }
+
+protected:
+  static void SqlDataTypeToCDataType(OdbcColumnDescription *col_desc) {
+    // TODO:
+    // - unixodbc doesn't seem to define all possible sql types
+    switch (col_desc->sql_data_type) {
+    // case SQL_BIT:
+    //   col_desc->c_data_type = SQL_C_BIT;
+    //   col_desc->length = sizeof(SQLCHAR);
+    //   break;
+    case SQL_SMALLINT:
+      col_desc->c_data_type = SQL_C_SHORT;
+      col_desc->length = sizeof(SQLSMALLINT);
+      break;
+    case SQL_INTEGER:
+      col_desc->c_data_type = SQL_C_LONG;
+      col_desc->length = sizeof(SQLINTEGER);
+      break;
+    case SQL_BIGINT:
+      col_desc->c_data_type = SQL_C_SBIGINT;
+      col_desc->length = sizeof(SQLBIGINT);
+      break;
+    // case SQL_DECFLOAT:
+    //   col_desc->c_data_type = SQL_C_CHAR;
+    //   break;
+    case SQL_DECIMAL:
+    case SQL_NUMERIC:
+      col_desc->c_data_type = SQL_C_CHAR;
+      // TODO:
+      // - this calculation is incorrect
+      // - it needs to take into account the scale
+      // - + (precision if decimal digits > 0)
+      // - + (decimal point if decimal digit > 0)
+      // - + (newline???)
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    case SQL_DOUBLE:
+    case SQL_FLOAT:
+      col_desc->c_data_type = SQL_C_DOUBLE;
+      col_desc->length = sizeof(double);
+      break;
+    case SQL_REAL:
+      col_desc->c_data_type = SQL_C_FLOAT;
+      col_desc->length = sizeof(float);
+      break;
+    case SQL_CHAR:
+    // case SQL_CLOB:
+    case SQL_VARCHAR:
+    case SQL_LONGVARCHAR:
+      col_desc->c_data_type = SQL_C_CHAR;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    case SQL_BINARY:
+    // case SQL_BLOB:
+    case SQL_VARBINARY:
+    case SQL_LONGVARBINARY:
+      col_desc->c_data_type = SQL_C_BINARY;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    // case SQL_BLOB_LOCATOR:
+    //   col_desc->c_data_type = SQL_C_BLOB_LOCATOR;
+    //   break;
+    // case SQL_DBCLOB:
+    // case SQL_GRAPHIC:
+    // case SQL_LONGVARGRAPHIC:
+    // case SQL_VARGRAPHIC:
+    //   col_desc->c_data_type = SQL_C_DBCHAR;
+    //   break;
+    // case SQL_DBCLOB_LOCATOR:
+    //   col_desc->c_data_type = SQL_C_DBCLOB_LOCATOR;
+    //   break;
+    // case SQL_CLOB_LOCATOR:
+    //   col_desc->c_data_type = SQL_C_CLOB_LOCATOR;
+    //   break;
+    // case SQL_ROWID:
+    //   col_desc->c_data_type = SQL_C_CHAR;
+    //   break;
+    case SQL_TYPE_DATE:
+      col_desc->c_data_type = SQL_C_TYPE_DATE;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    case SQL_TYPE_TIME:
+      col_desc->c_data_type = SQL_C_TYPE_TIME;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    case SQL_TYPE_TIMESTAMP:
+      col_desc->c_data_type = SQL_C_TYPE_TIMESTAMP;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    // case SQL_XML:
+    //   col_desc->c_data_type = SQL_C_BINARY;
+    //   break;
+    default:
+      throw Exception("OdbcSqlDataTypeToCDataType() unknown sql_data_type=" +
+                      std::to_string(col_desc->sql_data_type));
+      break;
     }
   }
 };
