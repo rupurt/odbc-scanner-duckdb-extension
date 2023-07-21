@@ -22,8 +22,7 @@ static unique_ptr<OdbcDiagnostics> ExtractDiagnostics(SQLSMALLINT handle_type, S
   SQLRETURN return_code;
   auto diagnostics = make_uniq<OdbcDiagnostics>();
 
-  while (SQL_SUCCEEDED(
-      SQLGetDiagRec(handle_type, handle, i, state, &native, text, sizeof(text), &len))) {
+  while (SQL_SUCCEEDED(SQLGetDiagRec(handle_type, handle, i, state, &native, text, sizeof(text), &len))) {
     diagnostics->msg += string((char *)text);
     diagnostics->state = string((char *)state);
     diagnostics->native = native;
@@ -54,11 +53,10 @@ static std::string SqlReturnCodeToString(SQLRETURN return_code) {
   }
 }
 
-static void ThrowExceptionWithDiagnostics(std::string msg_prefix, SQLHANDLE handle,
-                                          SQLRETURN return_code) {
+static void ThrowExceptionWithDiagnostics(std::string msg_prefix, SQLHANDLE handle, SQLRETURN return_code) {
   auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
   throw Exception(msg_prefix + " return_code=" + std::to_string(return_code) + ":" +
-                  SqlReturnCodeToString(return_code) + " msg='" + diagnostics->msg + "' state=" +
-                  diagnostics->state + " native=" + std::to_string(diagnostics->native));
+                  SqlReturnCodeToString(return_code) + " msg='" + diagnostics->msg +
+                  "' state=" + diagnostics->state + " native=" + std::to_string(diagnostics->native));
 }
 } // namespace duckdb

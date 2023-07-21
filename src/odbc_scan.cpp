@@ -203,8 +203,7 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data, DataChunk
 }
 
 static unique_ptr<FunctionData> OdbcScanBind(ClientContext &context, TableFunctionBindInput &input,
-                                             vector<LogicalType> &return_types,
-                                             vector<string> &names) {
+                                             vector<LogicalType> &return_types, vector<string> &names) {
   auto bind_data = make_uniq<OdbcScanBindData>();
   bind_data->connection_string = input.inputs[0].GetValue<string>();
   bind_data->schema_name = input.inputs[1].GetValue<string>();
@@ -253,15 +252,14 @@ static unique_ptr<GlobalTableFunctionState> OdbcScanInitGlobalState(ClientContex
   return make_uniq<OdbcScanGlobalState>();
 }
 
-static unique_ptr<LocalTableFunctionState>
-OdbcScanInitLocalState(ExecutionContext &context, TableFunctionInitInput &input,
-                       GlobalTableFunctionState *global_state) {
+static unique_ptr<LocalTableFunctionState> OdbcScanInitLocalState(ExecutionContext &context,
+                                                                  TableFunctionInitInput &input,
+                                                                  GlobalTableFunctionState *global_state) {
   auto &bind_data = input.bind_data->Cast<OdbcScanBindData>();
   auto row_array_size = bind_data.statement_opts->row_array_size;
   auto local_state = make_uniq<OdbcScanLocalState>(row_array_size);
 
-  bind_data.statement->SetAttribute(SQL_ATTR_ROW_STATUS_PTR,
-                                    (SQLPOINTER)&local_state->row_status[0]);
+  bind_data.statement->SetAttribute(SQL_ATTR_ROW_STATUS_PTR, (SQLPOINTER)&local_state->row_status[0]);
 
   for (SQLSMALLINT c = 0; c < bind_data.column_descriptions.size(); c++) {
     auto col_desc = bind_data.column_descriptions.at(c);
@@ -269,8 +267,7 @@ OdbcScanInitLocalState(ExecutionContext &context, TableFunctionInitInput &input,
     local_state->column_bindings.emplace_back(col_desc, row_array_size);
     auto column_binding = &local_state->column_bindings.at(c);
     bind_data.statement->BindColumn(c + 1, column_binding->c_data_type, column_binding->buffer,
-                                    column_binding->column_buffer_length,
-                                    column_binding->strlen_or_ind);
+                                    column_binding->column_buffer_length, column_binding->strlen_or_ind);
   }
 
   return std::move(local_state);
@@ -284,8 +281,8 @@ static string OdbcScanToString(const FunctionData *bind_data_p) {
 }
 
 OdbcScanFunction::OdbcScanFunction()
-    : TableFunction("odbc_scan", {LogicalType::VARCHAR, LogicalType::VARCHAR, LogicalType::VARCHAR},
-                    OdbcScan, OdbcScanBind, OdbcScanInitGlobalState, OdbcScanInitLocalState) {
+    : TableFunction("odbc_scan", {LogicalType::VARCHAR, LogicalType::VARCHAR, LogicalType::VARCHAR}, OdbcScan,
+                    OdbcScanBind, OdbcScanInitGlobalState, OdbcScanInitLocalState) {
   to_string = OdbcScanToString;
   // projection_pushdown = true;
 }
