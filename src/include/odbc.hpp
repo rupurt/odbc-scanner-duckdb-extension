@@ -8,7 +8,13 @@
 #include "sql.h"
 #include "sqlext.h"
 
+#include <iostream>
+
 namespace duckdb {
+// SQL extended data types from sqli.h
+#define SQL_BLOB -98
+#define SQL_XML -370
+
 struct OdbcEnvironment {
   OdbcEnvironment() { handle = SQL_NULL_HENV; }
   ~OdbcEnvironment() { FreeHandle(); }
@@ -124,6 +130,12 @@ struct OdbcColumnDescription {
   SQLSMALLINT nullable;
 };
 
+struct OdbcTableOptions {
+  std::string catalog_name;
+  std::string schema_name;
+  std::string table_name;
+};
+
 struct OdbcStatementOptions {
   OdbcStatementOptions(SQLULEN _row_array_size) : row_array_size(_row_array_size) {}
 
@@ -208,26 +220,6 @@ public:
                                     return_code);
     }
   }
-  SQLSMALLINT NumResultCols() {
-    if (handle == SQL_NULL_HSTMT) {
-      throw Exception("OdbcStatement->NumResultCols() handle has not been allocated. Call "
-                      "OdbcStatement#Init() before OdbcStatement#Prepare()");
-    }
-    if (!prepared) {
-      throw Exception("OdbcStatement->NumResultCols() statement has "
-                      "not been prepared. Call OdbcStatement#Prepare() before "
-                      "OdbcStatement#NumResultCols()");
-    }
-
-    SQLSMALLINT num_result_cols = 0;
-    auto return_code = SQLNumResultCols(handle, &num_result_cols);
-    if (!SQL_SUCCEEDED(return_code)) {
-      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", SQL_HANDLE_STMT,
-                                    handle, return_code);
-    }
-
-    return num_result_cols;
-  }
   vector<OdbcColumnDescription> DescribeColumns() {
     auto num_result_cols = NumResultCols();
     auto column_descriptions = vector<OdbcColumnDescription>(num_result_cols);
@@ -243,7 +235,7 @@ public:
                                       handle, return_code);
       }
 
-      SqlDataTypeToCDataType(col_desc);
+      SqlDataTypeToCDataType(col_desc, i);
     }
 
     return column_descriptions;
@@ -276,9 +268,10 @@ public:
     if (handle == SQL_NULL_HSTMT) {
       throw Exception("OdbcStatement->Fetch() handle is null");
     }
-    if (!prepared) {
-      throw Exception("OdbcStatement->Fetch() statement is not prepared");
-    }
+    // if (!prepared) {
+    //   throw Exception(
+    //       "OdbcStatement->Fetch() statement is not prepared");
+    // }
     if (!executing) {
       throw Exception("OdbcStatement->Fetch() statement is not executing");
     }
@@ -295,9 +288,60 @@ public:
 
     return rows_fetched;
   }
+  // TODO:
+  // - parameter for table type?
+  // -
+  // https://learn.microsoft.com/en-us/sql/odbc/reference/syntax/sqltables-function
+  void Tables(OdbcTableOptions opts) {
+    // // doesn't hydrate most columns
+    // auto sql_return = SQLTables(
+    //     handle, (SQLCHAR *)catalog_name.c_str(),
+    //     (SQLSMALLINT)catalog_name.size(), (SQLCHAR *)schema_name.c_str(),
+    //     (SQLSMALLINT)schema_name.size(), (SQLCHAR *)table_name.c_str(),
+    //     (SQLSMALLINT)table_name.size(), (SQLCHAR *)SQL_ALL_TABLE_TYPES,
+    //     (SQLSMALLINT)1);
+    // // works with postgres, returns no rows for db2
+    // auto sql_return = SQLTables(handle, (SQLCHAR *)catalog_name.c_str(),
+    //                             SQL_NTS, (SQLCHAR *)schema_name.c_str(),
+    //                             SQL_NTS, (SQLCHAR *)table_name.c_str(),
+    //                             SQL_NTS, (SQLCHAR *)SQL_ALL_TABLE_TYPES,
+    //                             SQL_NTS);
+    // works with db2, returns no rows for postgres
+    auto return_code =
+        SQLTables(handle, (SQLCHAR *)opts.catalog_name.c_str(), SQL_NTS, (SQLCHAR *)opts.schema_name.c_str(),
+                  SQL_NTS, (SQLCHAR *)opts.table_name.c_str(), SQL_NTS, (SQLCHAR *)"", SQL_NTS);
+    if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->Tables() SQLTables", SQL_HANDLE_STMT, handle,
+                                    return_code);
+    }
+
+    executing = true;
+  }
 
 protected:
-  static void SqlDataTypeToCDataType(OdbcColumnDescription *col_desc) {
+  SQLSMALLINT NumResultCols() {
+    if (handle == SQL_NULL_HSTMT) {
+      throw Exception("OdbcStatement->NumResultCols() handle has not been allocated. Call "
+                      "OdbcStatement#Init() before OdbcStatement#Prepare()");
+    }
+    // if (!prepared) {
+    //   throw Exception("OdbcStatement->NumResultCols() statement has "
+    //                   "not been prepared. Call OdbcStatement#Prepare() before "
+    //                   "OdbcStatement#NumResultCols()");
+    // }
+
+    SQLSMALLINT num_result_cols = 0;
+    auto return_code = SQLNumResultCols(handle, &num_result_cols);
+    if (!SQL_SUCCEEDED(return_code)) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", SQL_HANDLE_STMT,
+                                    handle, return_code);
+    }
+
+    return num_result_cols;
+  }
+  void SqlDataTypeToCDataType(OdbcColumnDescription *col_desc, SQLUSMALLINT col_idx) {
+    // std::cout << "SqlDataTypeToCDataType col=" << col_desc->name << std::endl;
+
     // TODO:
     // - unixodbc doesn't seem to define all possible sql types
     switch (col_desc->sql_data_type) {
@@ -341,7 +385,6 @@ protected:
       col_desc->length = sizeof(float);
       break;
     case SQL_CHAR:
-    // case SQL_CLOB:
     case SQL_VARCHAR:
     case SQL_LONGVARCHAR:
       col_desc->c_data_type = SQL_C_CHAR;
@@ -384,14 +427,164 @@ protected:
       col_desc->c_data_type = SQL_C_TYPE_TIMESTAMP;
       col_desc->length = col_desc->size + sizeof(SQLCHAR);
       break;
-    // case SQL_XML:
-    //   col_desc->c_data_type = SQL_C_BINARY;
-    //   break;
+    case SQL_BLOB: {
+      // case -98: {
+      // throw Exception("SqlDataTypeToCDataType() -98 application row "
+      //                 "descriptor specifies the data type sql_data_type=" +
+      //                 std::to_string(col_desc->sql_data_type));
+      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+      std::cout << "unhandled SQL TYPE SQL_BLOB using varchar?" << std::endl;
+      // col_desc->c_data_type = SQL_C_CHAR;
+      // col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      col_desc->c_data_type = SQL_C_BINARY;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    }
+    case SQL_ARD_TYPE: {
+      /* SQLGetData() code indicating that the application row descriptor
+       * specifies the data type
+       */
+      // https://www.easysoft.com/developer/languages/c/examples/util.html
+      // SQLHDESC  hArd
+      // // Get ARD
+      // retcode = SQLGetStmtAttr(hstmt, SQL_ATTR_APP_ROW_DESC, &hArd, 0, NULL);
+      // CHECK_ERROR(retcode, "SQLGetStmtAttr(SQL_HANDLE_STMT)",
+      //             hstmt, SQL_HANDLE_STMT);
+      // retcode = SQLGetDescField(descriptor, i+1,
+      //                               SQL_DESC_CONCISE_TYPE ,
+      //                               &descConsiseType, 0, 0);
+      //     if ( (retcode != SQL_SUCCESS) && (retcode != SQL_SUCCESS_WITH_INFO)
+      //     )
+      //     {
+      //         extract_error("SQLGetDescField (CONCISE_TYPE)",
+      //                                             descriptor,
+      //                                             SQL_HANDLE_DESC);
+      //     } else {
+      //         printf (" SQL_DESC_CONCISE_TYPE  : %i\n", descConsiseType);
+      //     }
+
+      // auto descriptor = OdbcDescriptor(conn);
+
+      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+      std::cout << "get descriptor field for col=" << col_desc->name << ", col_idx=" << col_idx << std::endl;
+      GetDescriptorField(col_idx);
+
+      // throw Exception("SqlDataTypeToCDataType() SQL_ARD_TYPE application row "
+      //                 "descriptor specifies the data type sql_data_type=" +
+      //                 std::to_string(col_desc->sql_data_type));
+
+      // col_desc->c_data_type = SQL_C_CHAR;
+      // col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      col_desc->c_data_type = SQL_C_BINARY;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    }
+    case SQL_XML: {
+      // throw Exception("SqlDataTypeToCDataType() -98 application row "
+      //                 "descriptor specifies the data type sql_data_type=" +
+      //                 std::to_string(col_desc->sql_data_type));
+      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+      std::cout << "unhandled SQL TYPE SQL_XML using varchar?" << std::endl;
+      col_desc->c_data_type = SQL_C_CHAR;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    }
     default:
       throw Exception("SqlDataTypeToCDataType() unknown sql_data_type=" +
                       std::to_string(col_desc->sql_data_type));
       break;
     }
+  }
+  void GetDescriptorField(SQLUSMALLINT col_idx) {
+    SQLRETURN return_code;
+    SQLSMALLINT desc_count;
+
+    SQLHDESC handle_descriptor;
+    // return_code = SQLGetStmtAttr(handle, SQL_ATTR_APP_ROW_DESC, &handle_descriptor, 0, NULL);
+    // if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+    //   ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetStmtAttr", SQL_HANDLE_STMT,
+    //                                 handle, return_code);
+    // }
+    //
+    // desc_count = GetDescriptorCount(handle_descriptor, col_idx);
+    // printf("\n  ARD Descriptor Record Fields");
+    // printf("\n  ------------------------\n");
+    // std::cout << "desc count=" << desc_count << std::endl;
+
+    // ---------------
+    return_code = SQLGetStmtAttr(handle, SQL_ATTR_IMP_ROW_DESC, &handle_descriptor, 0, NULL);
+    if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetStmtAttr", SQL_HANDLE_STMT,
+                                    handle, return_code);
+    }
+
+    desc_count = GetDescriptorCount(handle_descriptor, col_idx);
+    printf("\n  IMP Descriptor Record Fields");
+    printf("\n  ------------------------\n");
+    std::cout << "desc count=" << desc_count << std::endl;
+
+    // // ---------------
+    // return_code = SQLGetStmtAttr(handle, SQL_ATTR_APP_PARAM_DESC, &handle_descriptor, 0, NULL);
+    // if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+    //   ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetStmtAttr", SQL_HANDLE_STMT,
+    //                                 handle, return_code);
+    // }
+    //
+    // desc_count = GetDescriptorCount(handle_descriptor, col_idx);
+    // printf("\n  APP PARAM Descriptor Record Fields");
+    // printf("\n  ------------------------\n");
+    // std::cout << "desc count=" << desc_count << std::endl;
+    //
+    // // ---------------
+    // return_code = SQLGetStmtAttr(handle, SQL_ATTR_IMP_PARAM_DESC, &handle_descriptor, 0, NULL);
+    // if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+    //   ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetStmtAttr", SQL_HANDLE_STMT,
+    //                                 handle, return_code);
+    // }
+    //
+    // desc_count = GetDescriptorCount(handle_descriptor, col_idx);
+    // printf("\n  IMP PARAM Descriptor Record Fields");
+    // printf("\n  ------------------------\n");
+    // std::cout << "desc count=" << desc_count << std::endl;
+
+    SQLSMALLINT desc_consise_type;
+    return_code =
+        SQLGetDescField(handle_descriptor, col_idx + 1, SQL_DESC_CONCISE_TYPE, &desc_consise_type, 0, 0);
+    if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetDescField", SQL_HANDLE_STMT,
+                                    handle, return_code);
+    }
+
+    std::cout << "desc_concise_type=" << desc_consise_type << std::endl;
+
+    SQLSMALLINT desc_type;
+    return_code = SQLGetDescField(handle_descriptor, col_idx + 1, SQL_DESC_TYPE, &desc_type, 0, 0);
+    if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetDescField", SQL_HANDLE_STMT,
+                                    handle, return_code);
+    }
+    std::cout << "desc_type=" << desc_type << std::endl;
+    // if (return_code == SQL_SUCCESS || return_code == SQL_SUCCESS_WITH_INFO) {
+    //   // printf (" SQL_DESC_CONCISE_TYPE  : %i\n", descConsiseType);
+    //   std::cout << "SQL_DESC_CONCISE_TYPE=" << descConsiseType << std::endl;
+    // } else {
+    //   // extract_error("SQLGetDescField (CONCISE_TYPE)", handle_descriptor,
+    //   // SQL_HANDLE_DESC);
+    //   std::cout << "ERROR getting desc field=" << return_code << std::endl;
+    // }
+  }
+  SQLSMALLINT GetDescriptorCount(SQLHDESC descriptor, SQLUSMALLINT col_idx) {
+
+    SQLSMALLINT desc_count = 0;
+
+    // get number of fields in the descriptor
+    auto return_code = SQLGetDescField(descriptor, 0, SQL_DESC_COUNT, &desc_count, 0, 0);
+    if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->GetDescriptorField() SQLGetStmtAttr", SQL_HANDLE_STMT,
+                                    handle, return_code);
+    }
+
+    return desc_count;
   }
 };
 } // namespace duckdb
