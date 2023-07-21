@@ -19,7 +19,8 @@ struct OdbcEnvironment {
     if (handle != SQL_NULL_HENV) {
       auto return_code = SQLFreeHandle(SQL_HANDLE_ENV, handle);
       if (!SQL_SUCCEEDED(return_code)) {
-        ThrowExceptionWithDiagnostics("OdbcEnvironment->Init() SQLFreeHandle", handle, return_code);
+        ThrowExceptionWithDiagnostics("OdbcEnvironment->Init() SQLFreeHandle", SQL_HANDLE_ENV, handle,
+                                      return_code);
       }
     }
   }
@@ -48,7 +49,8 @@ public:
 
     return_code = SQLSetEnvAttr(handle, SQL_ATTR_ODBC_VERSION, (SQLPOINTER *)SQL_OV_ODBC3, 0);
     if (!SQL_SUCCEEDED(return_code)) {
-      ThrowExceptionWithDiagnostics("OdbcEnvironment->Init() SQLSetEnvAttr", handle, return_code);
+      ThrowExceptionWithDiagnostics("OdbcEnvironment->Init() SQLSetEnvAttr", SQL_HANDLE_ENV, handle,
+                                    return_code);
     }
   }
   SQLHENV Handle() const { return handle; }
@@ -70,7 +72,8 @@ struct OdbcConnection {
     if (handle != SQL_NULL_HDBC) {
       auto return_code = SQLFreeHandle(SQL_HANDLE_DBC, handle);
       if (!SQL_SUCCEEDED(return_code)) {
-        ThrowExceptionWithDiagnostics("OdbcConnection->FreeHandle() SQLFreeHandle", handle, return_code);
+        ThrowExceptionWithDiagnostics("OdbcConnection->FreeHandle() SQLFreeHandle", SQL_HANDLE_DBC, handle,
+                                      return_code);
       }
     }
   }
@@ -196,7 +199,8 @@ struct OdbcStatement {
     if (handle != SQL_NULL_HSTMT) {
       SQLRETURN return_code = SQLFreeHandle(SQL_HANDLE_STMT, handle);
       if (!SQL_SUCCEEDED(return_code)) {
-        ThrowExceptionWithDiagnostics("OdbcStatement->FreeHandle() SQLFreeHandle", handle, return_code);
+        ThrowExceptionWithDiagnostics("OdbcStatement->FreeHandle() SQLFreeHandle", SQL_HANDLE_STMT, handle,
+                                      return_code);
       }
     }
   }
@@ -286,7 +290,8 @@ public:
     auto return_code =
         SQLBindCol(handle, column_number, c_data_type, buffer, column_buffer_length, strlen_or_ind);
     if (!SQL_SUCCEEDED(return_code)) {
-      ThrowExceptionWithDiagnostics("OdbcStatement->BindCol() SQLBindCol", handle, return_code);
+      ThrowExceptionWithDiagnostics("OdbcStatement->BindCol() SQLBindCol", SQL_HANDLE_STMT, handle,
+                                    return_code);
     }
   }
   SQLSMALLINT NumResultCols() {
@@ -303,7 +308,8 @@ public:
     SQLSMALLINT num_result_cols = 0;
     auto return_code = SQLNumResultCols(handle, &num_result_cols);
     if (!SQL_SUCCEEDED(return_code)) {
-      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", handle, return_code);
+      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", SQL_HANDLE_STMT,
+                                    handle, return_code);
     }
 
     return num_result_cols;
@@ -319,7 +325,8 @@ public:
                                         &col_desc->name_length, &col_desc->sql_data_type, &col_desc->size,
                                         &col_desc->decimal_digits, &col_desc->nullable);
       if (!SQL_SUCCEEDED(return_code)) {
-        ThrowExceptionWithDiagnostics("OdbcStatement->DescribeColumns() SQLDescribeCol", handle, return_code);
+        ThrowExceptionWithDiagnostics("OdbcStatement->DescribeColumns() SQLDescribeCol", SQL_HANDLE_STMT,
+                                      handle, return_code);
       }
 
       SqlDataTypeToCDataType(col_desc);

@@ -53,8 +53,9 @@ static std::string SqlReturnCodeToString(SQLRETURN return_code) {
   }
 }
 
-static void ThrowExceptionWithDiagnostics(std::string msg_prefix, SQLHANDLE handle, SQLRETURN return_code) {
-  auto diagnostics = ExtractDiagnostics(SQL_HANDLE_STMT, handle);
+static void ThrowExceptionWithDiagnostics(std::string msg_prefix, SQLSMALLINT handle_type, SQLHANDLE handle,
+                                          SQLRETURN return_code) {
+  auto diagnostics = ExtractDiagnostics(handle_type, handle);
   throw Exception(msg_prefix + " return_code=" + std::to_string(return_code) + ":" +
                   SqlReturnCodeToString(return_code) + " msg='" + diagnostics->msg +
                   "' state=" + diagnostics->state + " native=" + std::to_string(diagnostics->native));
