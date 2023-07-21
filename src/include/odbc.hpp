@@ -8,7 +8,26 @@
 #include "sql.h"
 #include "sqlext.h"
 
+#include <iostream>
+
 namespace duckdb {
+// SQL extended data types from sqli.h
+#define  SQL_GRAPHIC            -95
+#define  SQL_VARGRAPHIC         -96
+#define  SQL_LONGVARGRAPHIC     -97
+#define  SQL_BLOB               -98
+#define  SQL_DBCLOB             -350
+#define  SQL_XML                -370
+
+// C data type to SQL data type mapping
+#define  SQL_C_DBCHAR         SQL_DBCLOB
+// #define  SQL_C_DECIMAL_IBM    SQL_DECIMAL
+// #define  SQL_C_DATALINK       SQL_C_CHAR
+// #define  SQL_C_PTR            2463
+// #define  SQL_C_DECIMAL_OLEDB  2514
+// #define  SQL_C_DECIMAL64      SQL_DECFLOAT
+// #define  SQL_C_DECIMAL128     -361
+
 struct OdbcEnvironment {
   OdbcEnvironment() { handle = SQL_NULL_HENV; }
   ~OdbcEnvironment() { FreeHandle(); }
@@ -124,6 +143,12 @@ struct OdbcColumnDescription {
   SQLSMALLINT nullable;
 };
 
+struct OdbcTableOptions {
+  std::string catalog_name;
+  std::string schema_name;
+  std::string table_name;
+};
+
 struct OdbcStatementOptions {
   OdbcStatementOptions(SQLULEN _row_array_size) : row_array_size(_row_array_size) {}
 
@@ -208,26 +233,6 @@ public:
                                     return_code);
     }
   }
-  SQLSMALLINT NumResultCols() {
-    if (handle == SQL_NULL_HSTMT) {
-      throw Exception("OdbcStatement->NumResultCols() handle has not been allocated. Call "
-                      "OdbcStatement#Init() before OdbcStatement#Prepare()");
-    }
-    if (!prepared) {
-      throw Exception("OdbcStatement->NumResultCols() statement has "
-                      "not been prepared. Call OdbcStatement#Prepare() before "
-                      "OdbcStatement#NumResultCols()");
-    }
-
-    SQLSMALLINT num_result_cols = 0;
-    auto return_code = SQLNumResultCols(handle, &num_result_cols);
-    if (!SQL_SUCCEEDED(return_code)) {
-      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", SQL_HANDLE_STMT,
-                                    handle, return_code);
-    }
-
-    return num_result_cols;
-  }
   vector<OdbcColumnDescription> DescribeColumns() {
     auto num_result_cols = NumResultCols();
     auto column_descriptions = vector<OdbcColumnDescription>(num_result_cols);
@@ -243,7 +248,7 @@ public:
                                       handle, return_code);
       }
 
-      SqlDataTypeToCDataType(col_desc);
+      SqlDataTypeToCDataType(col_desc, i);
     }
 
     return column_descriptions;
@@ -276,9 +281,10 @@ public:
     if (handle == SQL_NULL_HSTMT) {
       throw Exception("OdbcStatement->Fetch() handle is null");
     }
-    if (!prepared) {
-      throw Exception("OdbcStatement->Fetch() statement is not prepared");
-    }
+    // if (!prepared) {
+    //   throw Exception(
+    //       "OdbcStatement->Fetch() statement is not prepared");
+    // }
     if (!executing) {
       throw Exception("OdbcStatement->Fetch() statement is not executing");
     }
@@ -295,9 +301,60 @@ public:
 
     return rows_fetched;
   }
+  // TODO:
+  // - parameter for table type?
+  // -
+  // https://learn.microsoft.com/en-us/sql/odbc/reference/syntax/sqltables-function
+  void Tables(OdbcTableOptions opts) {
+    // // doesn't hydrate most columns
+    // auto sql_return = SQLTables(
+    //     handle, (SQLCHAR *)catalog_name.c_str(),
+    //     (SQLSMALLINT)catalog_name.size(), (SQLCHAR *)schema_name.c_str(),
+    //     (SQLSMALLINT)schema_name.size(), (SQLCHAR *)table_name.c_str(),
+    //     (SQLSMALLINT)table_name.size(), (SQLCHAR *)SQL_ALL_TABLE_TYPES,
+    //     (SQLSMALLINT)1);
+    // // works with postgres, returns no rows for db2
+    // auto sql_return = SQLTables(handle, (SQLCHAR *)catalog_name.c_str(),
+    //                             SQL_NTS, (SQLCHAR *)schema_name.c_str(),
+    //                             SQL_NTS, (SQLCHAR *)table_name.c_str(),
+    //                             SQL_NTS, (SQLCHAR *)SQL_ALL_TABLE_TYPES,
+    //                             SQL_NTS);
+    // works with db2, returns no rows for postgres
+    auto return_code =
+        SQLTables(handle, (SQLCHAR *)opts.catalog_name.c_str(), SQL_NTS, (SQLCHAR *)opts.schema_name.c_str(),
+                  SQL_NTS, (SQLCHAR *)opts.table_name.c_str(), SQL_NTS, (SQLCHAR *)"", SQL_NTS);
+    if (return_code != SQL_SUCCESS && return_code != SQL_SUCCESS_WITH_INFO) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->Tables() SQLTables", SQL_HANDLE_STMT, handle,
+                                    return_code);
+    }
+
+    executing = true;
+  }
 
 protected:
-  static void SqlDataTypeToCDataType(OdbcColumnDescription *col_desc) {
+  SQLSMALLINT NumResultCols() {
+    if (handle == SQL_NULL_HSTMT) {
+      throw Exception("OdbcStatement->NumResultCols() handle has not been allocated. Call "
+                      "OdbcStatement#Init() before OdbcStatement#Prepare()");
+    }
+    // if (!prepared) {
+    //   throw Exception("OdbcStatement->NumResultCols() statement has "
+    //                   "not been prepared. Call OdbcStatement#Prepare() before "
+    //                   "OdbcStatement#NumResultCols()");
+    // }
+
+    SQLSMALLINT num_result_cols = 0;
+    auto return_code = SQLNumResultCols(handle, &num_result_cols);
+    if (!SQL_SUCCEEDED(return_code)) {
+      ThrowExceptionWithDiagnostics("OdbcStatement->NumResultCols() SQLNumResultCols", SQL_HANDLE_STMT,
+                                    handle, return_code);
+    }
+
+    return num_result_cols;
+  }
+  void SqlDataTypeToCDataType(OdbcColumnDescription *col_desc, SQLUSMALLINT col_idx) {
+    // std::cout << "SqlDataTypeToCDataType col=" << col_desc->name << std::endl;
+
     // TODO:
     // - unixodbc doesn't seem to define all possible sql types
     switch (col_desc->sql_data_type) {
@@ -341,37 +398,11 @@ protected:
       col_desc->length = sizeof(float);
       break;
     case SQL_CHAR:
-    // case SQL_CLOB:
     case SQL_VARCHAR:
     case SQL_LONGVARCHAR:
       col_desc->c_data_type = SQL_C_CHAR;
       col_desc->length = col_desc->size + sizeof(SQLCHAR);
       break;
-    case SQL_BINARY:
-    // case SQL_BLOB:
-    case SQL_VARBINARY:
-    case SQL_LONGVARBINARY:
-      col_desc->c_data_type = SQL_C_BINARY;
-      col_desc->length = col_desc->size + sizeof(SQLCHAR);
-      break;
-    // case SQL_BLOB_LOCATOR:
-    //   col_desc->c_data_type = SQL_C_BLOB_LOCATOR;
-    //   break;
-    // case SQL_DBCLOB:
-    // case SQL_GRAPHIC:
-    // case SQL_LONGVARGRAPHIC:
-    // case SQL_VARGRAPHIC:
-    //   col_desc->c_data_type = SQL_C_DBCHAR;
-    //   break;
-    // case SQL_DBCLOB_LOCATOR:
-    //   col_desc->c_data_type = SQL_C_DBCLOB_LOCATOR;
-    //   break;
-    // case SQL_CLOB_LOCATOR:
-    //   col_desc->c_data_type = SQL_C_CLOB_LOCATOR;
-    //   break;
-    // case SQL_ROWID:
-    //   col_desc->c_data_type = SQL_C_CHAR;
-    //   break;
     case SQL_TYPE_DATE:
       col_desc->c_data_type = SQL_C_TYPE_DATE;
       col_desc->length = col_desc->size + sizeof(SQLCHAR);
@@ -384,9 +415,44 @@ protected:
       col_desc->c_data_type = SQL_C_TYPE_TIMESTAMP;
       col_desc->length = col_desc->size + sizeof(SQLCHAR);
       break;
-    // case SQL_XML:
-    //   col_desc->c_data_type = SQL_C_BINARY;
+    case SQL_BINARY:
+    case SQL_VARBINARY:
+    case SQL_LONGVARBINARY:
+      col_desc->c_data_type = SQL_C_BINARY;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    // case SQL_BLOB_LOCATOR:
+    //   col_desc->c_data_type = SQL_C_BLOB_LOCATOR;
     //   break;
+    case SQL_DBCLOB:
+    case SQL_GRAPHIC:
+    case SQL_LONGVARGRAPHIC:
+    case SQL_VARGRAPHIC:
+      col_desc->c_data_type = SQL_C_DBCHAR;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    // case SQL_DBCLOB_LOCATOR:
+    //   col_desc->c_data_type = SQL_C_DBCLOB_LOCATOR;
+    //   break;
+    // case SQL_CLOB_LOCATOR:
+    //   col_desc->c_data_type = SQL_C_CLOB_LOCATOR;
+    //   break;
+    // case SQL_ROWID:
+    //   col_desc->c_data_type = SQL_C_CHAR;
+    //   break;
+    case SQL_BLOB:
+      col_desc->c_data_type = SQL_C_BINARY;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    case SQL_ARD_TYPE: {
+      col_desc->c_data_type = SQL_C_BINARY;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
+    }
+    case SQL_XML:
+      col_desc->c_data_type = SQL_C_CHAR;
+      col_desc->length = col_desc->size + sizeof(SQLCHAR);
+      break;
     default:
       throw Exception("SqlDataTypeToCDataType() unknown sql_data_type=" +
                       std::to_string(col_desc->sql_data_type));
