@@ -28,10 +28,16 @@
           ];
         };
       stdenv = pkgs.llvmPackages_15.stdenv;
+
+      # Define a helper function to conditionally include the db2-odbc-driver package as not all arch are supported
+      getDb2OdbcDriver =
+      if system == "aarch64-linux" || system == "aarch64-darwin" then null else pkgs.db2-odbc-driver {};
+
+
     in rec {
       # packages exported by the flake
       packages = {
-        db2-odbc-driver = pkgs.db2-odbc-driver {};
+        db2-odbc-driver = getDb2OdbcDriver;
         postgres-odbc-driver = pkgs.postgres-odbc-driver {};
       };
 
