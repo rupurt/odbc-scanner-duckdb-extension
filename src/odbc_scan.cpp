@@ -141,6 +141,9 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data, DataChunk
         auto buffer = &column_binding->buffer[r * column_binding->column_buffer_length];
 
         switch (column_binding->sql_data_type) {
+        case SQL_TINYINT:
+          output.SetValue(c, local_state.offset, Value(*(std::int8_t *)buffer));
+          break;
         case SQL_SMALLINT:
           output.SetValue(c, local_state.offset, Value(*(std::int16_t *)buffer));
           break;
@@ -171,6 +174,32 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data, DataChunk
         case SQL_LONGVARBINARY:
           output.SetValue(c, local_state.offset, Value((char *)buffer));
           break;
+        case SQL_TYPE_DATE: {
+          SQL_DATE_STRUCT * date_struct = (SQL_DATE_STRUCT *) buffer;
+          output.SetValue(c, local_state.offset, Value::DATE(date_struct->year,
+                                                             date_struct->month,
+                                                             date_struct->day));
+          break;
+          }
+        case SQL_TYPE_TIME: {
+          SQL_TIME_STRUCT * time_struct = (SQL_TIME_STRUCT *) buffer;
+          output.SetValue(c, local_state.offset, Value::TIME(time_struct->hour,
+                                                             time_struct->minute,
+                                                             time_struct->second, 0));
+          break;
+          }
+        case SQL_TYPE_TIMESTAMP: {
+          SQL_TIMESTAMP_STRUCT * timestamp_struct = (SQL_TIMESTAMP_STRUCT *) buffer;
+		      Value value = Value::TIMESTAMP(timestamp_struct->year,
+                                         timestamp_struct->month,
+                                         timestamp_struct->day,
+		                                     timestamp_struct->hour,
+                                         timestamp_struct->minute,
+                                         timestamp_struct->second, 0);
+          //std::cout << "timestamp: " << value.ToString() << std::endl;
+          output.SetValue(c, local_state.offset, value);
+          break;
+          }
         default:
           throw Exception("OdbcScanFunction#OdbcScan() unhandled output "
                           "mapping from ODBC to DuckDB sql_data_type=" +
