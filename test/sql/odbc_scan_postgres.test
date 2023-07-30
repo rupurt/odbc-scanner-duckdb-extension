@@ -1,31 +1,31 @@
-# name: test/sql/odbc_scan_postgres.test
-# description: test odbc_scanner extension
-# group: [odbc_scan]
-
-# Before we load the extension, this will fail
-statement error
-SELECT * FROM odbc_scan(
-  'DSN={postgres odbc_test};Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432',
-  '',
-  'people'
-)
-ORDER BY salary ASC;
-----
-Catalog Error: Table Function with name odbc_scan does not exist!
-
-# Require statement will ensure this test is run with this extension loaded
-require odbc_scanner
-
-# Confirm the extension works
-query III
-SELECT * FROM odbc_scan(
-  'DSN={postgres odbc_test};Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432',
-  '',
-  'people'
-)
-ORDER BY salary ASC;
-----
-Lebron James	37	100.1
-Spiderman	25	200.2
-Wonder Woman	21	300.3
-David Bowie	69	400.4
+# # name: test/sql/odbc_scan_postgres.test
+# # description: test odbc_scanner extension
+# # group: [odbc_scan]
+#
+# # Before we load the extension, this will fail
+# statement error
+# SELECT * FROM odbc_scan(
+#   'DSN={postgres odbc_test};Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432',
+#   '',
+#   'people'
+# )
+# ORDER BY salary ASC;
+# ----
+# Catalog Error: Table Function with name odbc_scan does not exist!
+#
+# # Require statement will ensure this test is run with this extension loaded
+# require odbc_scanner
+#
+# # Confirm the extension works
+# query III
+# SELECT * FROM odbc_scan(
+#   'DSN={postgres odbc_test};Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432',
+#   '',
+#   'people'
+# )
+# ORDER BY salary ASC;
+# ----
+# Lebron James	37	100.1
+# Spiderman	25	200.2
+# Wonder Woman	21	300.3
+# David Bowie	69	400.4

@@ -82,6 +82,9 @@ static void OdbcScan(ClientContext &context, TableFunctionInput &data, DataChunk
 
 static unique_ptr<FunctionData> OdbcScanBind(ClientContext &context, TableFunctionBindInput &input,
                                              vector<LogicalType> &return_types, vector<string> &names) {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "in OdbcScanBind" << std::endl;
+
   auto bind_data = make_uniq<OdbcScanBindData>();
   bind_data->connection_string = input.inputs[0].GetValue<string>();
   bind_data->schema_name = input.inputs[1].GetValue<string>();
