@@ -3,7 +3,7 @@
 #include "duckdb.hpp"
 
 namespace duckdb {
-class Odbc_scannerExtension : public Extension {
+class OdbcScannerExtension : public Extension {
 public:
   void Load(DuckDB &db) override;
   std::string Name() override;

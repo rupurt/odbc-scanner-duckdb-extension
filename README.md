@@ -75,7 +75,7 @@ to the correct version of `unixodbc`.
 
 ```shell
 nix run .#build
-./build/release/duckdb
+./build/release/duckdb -unsigned
 ```
 
 To use ODBC DSN's with driver paths managed by the `odbc-drivers-nix` flake run the generate nix apps.

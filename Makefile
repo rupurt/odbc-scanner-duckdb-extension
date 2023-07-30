@@ -23,7 +23,9 @@ BUILD_FLAGS=-DEXTENSION_STATIC_BUILD=1 -DBUILD_TPCH_EXTENSION=1 -DBUILD_PARQUET_
 CLIENT_FLAGS :=
 
 # These flags will make DuckDB build the extension
-EXTENSION_FLAGS=-DDUCKDB_OOT_EXTENSION_NAMES="odbc_scanner" -DDUCKDB_OOT_EXTENSION_ODBC_SCANNER_PATH="$(PROJ_DIR)" -DDUCKDB_OOT_EXTENSION_ODBC_SCANNER_SHOULD_LINK="TRUE" -DDUCKDB_OOT_EXTENSION_ODBC_SCANNER_INCLUDE_PATH="$(PROJ_DIR)src/include"
+EXT_NAME="odbc_scanner"
+EXT_NAME_UPPERCASE=$(shell echo $(EXT_NAME) | tr '[:lower:]' '[:upper:]')
+EXTENSION_FLAGS=-DDUCKDB_EXTENSION_NAMES=${EXT_NAME} -DDUCKDB_EXTENSION_${EXT_NAME_UPPERCASE}_PATH="$(PROJ_DIR)" -DDUCKDB_EXTENSION_${EXT_NAME_UPPERCASE}_SHOULD_LINK="TRUE" -DDUCKDB_EXTENSION_${EXT_NAME_UPPERCASE}_LOAD_TESTS="FALSE" -DDUCKDB_EXTENSION_${EXT_NAME_UPPERCASE}_INCLUDE_PATH="$(PROJ_DIR)src/include"
 
 pull:
 	git submodule init
@@ -36,13 +38,13 @@ clean:
 
 # Main build
 debug:
-	mkdir -p  build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DEXTENSION_STATIC_BUILD=1 -DCMAKE_BUILD_TYPE=Debug ${BUILD_FLAGS} -S ./duckdb/ -B build/debug && \
+	mkdir -p build/debug && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DCMAKE_BUILD_TYPE=Debug ${BUILD_FLAGS} -S ./duckdb/ -B build/debug && \
 	cmake --build build/debug --config Debug
 
 release:
 	mkdir -p build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DEXTENSION_STATIC_BUILD=1 -DCMAKE_BUILD_TYPE=Release ${BUILD_FLAGS} -S ./duckdb/ -B build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(EXTENSION_FLAGS) ${CLIENT_FLAGS} -DCMAKE_BUILD_TYPE=Release ${BUILD_FLAGS} -S ./duckdb/ -B build/release && \
 	cmake --build build/release --config Release
 
 # Client build

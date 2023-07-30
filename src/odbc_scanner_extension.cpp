@@ -29,8 +29,8 @@ static void LoadInternal(DatabaseInstance &instance) {
   con.Commit();
 }
 
-void Odbc_scannerExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
-std::string Odbc_scannerExtension::Name() { return "odbc_scanner"; }
+void OdbcScannerExtension::Load(DuckDB &db) { LoadInternal(*db.instance); }
+std::string OdbcScannerExtension::Name() { return "odbc_scanner"; }
 } // namespace duckdb
 
 extern "C" {

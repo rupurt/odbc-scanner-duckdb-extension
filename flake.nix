@@ -30,14 +30,17 @@
       stdenv = pkgs.llvmPackages_15.stdenv;
 
       # Define a helper function to conditionally include the db2-odbc-driver package as not all arch are supported
-      getDb2OdbcDriver =
-      if system == "aarch64-linux" || system == "aarch64-darwin" then null else pkgs.db2-odbc-driver {};
+      isAarch64 = system == "aarch64-linux" || system == "aarch64-darwin";
+
+      getDb2OdbcDriver = if isAarch64 then null else pkgs.db2-odbc-driver;
+      getDb2OdbcDriverLibFile = if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so";
+      getDb2OdbcDriverPath = if isAarch64 then "" else "DB2_DRIVER_PATH=${getDb2OdbcDriver}/lib/${getDb2OdbcDriverLibFile}";
 
 
     in rec {
       # packages exported by the flake
       packages = {
-        db2-odbc-driver = getDb2OdbcDriver;
+        db2-odbc-driver = if getDb2OdbcDriver != null then getDb2OdbcDriver {} else null;
         postgres-odbc-driver = pkgs.postgres-odbc-driver {};
       };
 
@@ -65,7 +68,7 @@
         generate-odbcinst-ini = {
           type = "app";
           program = toString (pkgs.writeScript "generate-odbcinst-ini" ''
-            DB2_DRIVER_PATH=${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"} \
+            ${getDb2OdbcDriverPath} \
             POSTGRES_DRIVER_PATH=${packages.postgres-odbc-driver}/lib/psqlodbca.so \
               envsubst < ./templates/.odbcinst.ini.template > .odbcinst.ini
           '');
@@ -73,7 +76,7 @@
         ls-odbc-driver-paths = {
           type = "app";
           program = toString (pkgs.writeScript "ls-odbc-driver-paths" ''
-            echo "db2 ${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"}"
+            ${if isAarch64 then "" else "echo \"db2 ${getDb2OdbcDriverPath}"}
             echo "postgres ${packages.postgres-odbc-driver}/lib/psqlodbca.so"
           '');
         };
@@ -93,7 +96,7 @@
                 cmake
                 ninja
                 openssl
-                packages.db2-odbc-driver
+                getDb2OdbcDriver
                 packages.postgres-odbc-driver
               ]
             )}:$PATH"
@@ -118,7 +121,7 @@
                 cmake
                 ninja
                 openssl
-                packages.db2-odbc-driver
+                getDb2OdbcDriver
                 packages.postgres-odbc-driver
               ]
             )}:$PATH"
@@ -152,7 +155,7 @@
           pkgs.unixODBC
           # psql cli
           pkgs.postgresql_15
-          packages.db2-odbc-driver
+          getDb2OdbcDriver
           packages.postgres-odbc-driver
         ];
       };
