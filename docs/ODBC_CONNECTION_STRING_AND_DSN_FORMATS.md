@@ -9,6 +9,7 @@ from [connectionstrings.com](https://www.connectionstrings.com).
 nix run .#odbc-driver-paths
 db2 /nix/store/6flbacf9h5bk09iw37b7sncgjn9mdkwj-db2-odbc-driver-11.5.8/lib/libdb2.so
 postgres /nix/store/j648cwmz16prd2n35h0xdhji9b02pip6-postgres-odbc-driver-15.00.0000/lib/psqlodbca.so
+mariadb /nix/store/i2i0jj2bxxkq9yc74217b00ddcjnygsg-mariadb-odbc-driver-3.1.9/lib/mariadb/libmaodbc.so
 ```
 
 ## DSN's
@@ -33,11 +34,20 @@ Driver = postgres
 ```
 
 ```odbcinst.ini
-[db2]
-Driver = ${DB2_DRIVER_PATH}
-
 [postgres]
 Driver = ${POSTGRES_DRIVER_PATH}
+```
+
+### MariaDB
+
+```odbc.ini
+[mariadb odbc_test]
+Driver = mariadb
+```
+
+```odbcinst.ini
+[mariadb]
+Driver = ${MARIADB_DRIVER_PATH}
 ```
 
 ## Connection Strings
@@ -52,4 +62,10 @@ Driver=/nix/store/py6m0q4ij50pwjk6a5f18qhhahrvf2sk-db2-driver-11.5.8/lib/libdb2.
 
 ```
 Driver=/nix/store/j648cwmz16prd2n35h0xdhji9b02pip6-postgres-odbc-driver-15.00.0000/lib/psqlodbca.so;Server=localhost;Database=odbc_test;Uid=postgres;Pwd=password;Port=5432
+```
+
+### MariaDB
+
+```
+Driver=/nix/store/i2i0jj2bxxkq9yc74217b00ddcjnygsg-mariadb-odbc-driver-3.1.9/lib/mariadb/libmaodbc.so;Server=localhost;Database=odbc_test;Uid=mysql;Pwd=password;Port=3306
 ```

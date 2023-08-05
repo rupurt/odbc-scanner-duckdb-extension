@@ -39,6 +39,7 @@
       packages = {
         db2-odbc-driver = getDb2OdbcDriver;
         postgres-odbc-driver = pkgs.postgres-odbc-driver {};
+        mariadb-odbc-driver = pkgs.mariadb-odbc-driver {};
       };
 
       # nix run
@@ -67,6 +68,7 @@
           program = toString (pkgs.writeScript "generate-odbcinst-ini" ''
             DB2_DRIVER_PATH=${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"} \
             POSTGRES_DRIVER_PATH=${packages.postgres-odbc-driver}/lib/psqlodbca.so \
+            MARIADB_DRIVER_PATH=${packages.mariadb-odbc-driver}/lib/mariadb/libmaodbc.so \
               envsubst < ./templates/.odbcinst.ini.template > .odbcinst.ini
           '');
         };
@@ -75,6 +77,7 @@
           program = toString (pkgs.writeScript "ls-odbc-driver-paths" ''
             echo "db2 ${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"}"
             echo "postgres ${packages.postgres-odbc-driver}/lib/psqlodbca.so"
+            echo "mariadb ${packages.mariadb-odbc-driver}/lib/mariadb/libmaodbc.so"
           '');
         };
         load-db2-schema = {
@@ -95,6 +98,7 @@
                 openssl
                 packages.db2-odbc-driver
                 packages.postgres-odbc-driver
+                packages.mariadb-odbc-driver
               ]
             )}:$PATH"
             export CC=${stdenv.cc}/bin/clang
@@ -120,6 +124,7 @@
                 openssl
                 packages.db2-odbc-driver
                 packages.postgres-odbc-driver
+                packages.mariadb-odbc-driver
               ]
             )}:$PATH"
             export CC=${stdenv.cc}/bin/clang
@@ -154,6 +159,7 @@
           pkgs.postgresql_15
           packages.db2-odbc-driver
           packages.postgres-odbc-driver
+          packages.mariadb-odbc-driver
         ];
       };
     });

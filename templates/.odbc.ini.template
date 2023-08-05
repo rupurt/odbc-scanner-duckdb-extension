@@ -3,3 +3,6 @@ Driver = db2
 
 [postgres odbc_test]
 Driver = postgres
+
+[mariadb odbc_test]
+Driver = mariadb
