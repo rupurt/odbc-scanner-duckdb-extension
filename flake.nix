@@ -28,16 +28,10 @@
           ];
         };
       stdenv = pkgs.llvmPackages_15.stdenv;
-
-      # Define a helper function to conditionally include the db2-odbc-driver package as not all arch are supported
-      getDb2OdbcDriver =
-      if system == "aarch64-linux" || system == "aarch64-darwin" then null else pkgs.db2-odbc-driver {};
-
-
     in rec {
       # packages exported by the flake
       packages = {
-        db2-odbc-driver = getDb2OdbcDriver;
+        db2-odbc-driver = pkgs.db2-odbc-driver {};
         postgres-odbc-driver = pkgs.postgres-odbc-driver {};
       };
 
@@ -65,7 +59,11 @@
         generate-odbcinst-ini = {
           type = "app";
           program = toString (pkgs.writeScript "generate-odbcinst-ini" ''
-            DB2_DRIVER_PATH=${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"} \
+            DB2_DRIVER_PATH=${packages.db2-odbc-driver}/lib/${
+              if stdenv.isDarwin
+              then "libdb2.dylib"
+              else "libdb2.so"
+            } \
             POSTGRES_DRIVER_PATH=${packages.postgres-odbc-driver}/lib/psqlodbca.so \
               envsubst < ./templates/.odbcinst.ini.template > .odbcinst.ini
           '');
@@ -73,7 +71,11 @@
         ls-odbc-driver-paths = {
           type = "app";
           program = toString (pkgs.writeScript "ls-odbc-driver-paths" ''
-            echo "db2 ${packages.db2-odbc-driver}/lib/${if stdenv.isDarwin then "libdb2.dylib" else "libdb2.so"}"
+            echo "db2 ${packages.db2-odbc-driver}/lib/${
+              if stdenv.isDarwin
+              then "libdb2.dylib"
+              else "libdb2.so"
+            }"
             echo "postgres ${packages.postgres-odbc-driver}/lib/psqlodbca.so"
           '');
         };
