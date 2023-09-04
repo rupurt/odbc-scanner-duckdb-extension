@@ -2,31 +2,25 @@
   description = "Nix flake for the odbc_scanner duckdb extension";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
     odbc-drivers.url = "github:rupurt/odbc-drivers-nix";
   };
 
   outputs = {
     flake-utils,
+    nixpkgs,
     odbc-drivers,
     ...
   }: let
     systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
     outputs = flake-utils.lib.eachSystem systems (system: let
-      # use old version of nix packages that builds against glibc 2.35
-      pkgs =
-        import (builtins.fetchGit {
-          name = "nixpkgs-with-glibc-2.35-224";
-          url = "https://github.com/nixos/nixpkgs";
-          ref = "refs/heads/nixpkgs-unstable";
-          rev = "8ad5e8132c5dcf977e308e7bf5517cc6cc0bf7d8";
-        }) {
-          inherit system;
-          overlays = [
-            odbc-drivers.overlay
-          ];
-        };
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          odbc-drivers.overlay
+        ];
+      };
       stdenv = pkgs.llvmPackages_15.stdenv;
     in rec {
       # packages exported by the flake
